@@ -10,7 +10,7 @@ import itertools
 from pathlib import Path
 from main import run_build_qtable, run_backtest_stats
 
-SKIP_MACROS  = frozenset({1, 3, 5, 6})   # macros silencieuses
+SKIP_MACROS  = frozenset({1, 3, 5, 6, 7})  # macros silencieuses + 14:50 (Power Hour, inefficace sur BTC Binance)
 SKIP_DAYS    = frozenset({0})             # 0=Lundi retire
 EXIT_HM      = 960                         # sortie 16:00 ET
 TEST_RATIO   = 0.2
