@@ -16,9 +16,13 @@ EXIT_HM      = 960                         # sortie 16:00 ET
 TEST_RATIO   = 0.2
 MIN_SAMPLES  = 5
 
-# Regles directionnelles : (mac_idx, lc, pc) -> sc autorise
-# 09:50 (mac=2) : RAID_H (lc=1) x BSL_swept (pc=1) -> SW_H uniquement (sc=1 -> SHORT)
-MACRO_RULES  = {(2, 1, 1): frozenset({1})}
+# Regles directionnelles : (mac_idx, lc, pc) -> sc autorise (frozenset vide = toujours skip)
+# 09:50 (mac=2) : RAID_H x BSL_swept -> SW_H uniquement (sc=1 -> SHORT)
+# 09:50 (mac=2) : NO_RAID x BSL_swept -> signal non fiable, bloque
+MACRO_RULES  = {
+    (2, 1, 1): frozenset({1}),
+    (2, 0, 1): frozenset(),
+}
 
 SL_VALUES = [0.003, 0.004, 0.005, 0.006, 0.008, 0.010]
 RR_VALUES = [1.5, 2.0, 2.5, 3.0]
