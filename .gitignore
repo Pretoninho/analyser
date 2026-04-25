@@ -1,0 +1,31 @@
+# Données brutes — trop volumineuses pour git
+data_binance/
+
+# Bases SQLite
+db/prices.db
+db/results.db
+
+# Anciens modèles RL (non utilisés)
+db/deep_agent.zip
+db/deep_vecnorm.pkl
+db/q_agent.pkl
+db/action_mask.npy
+db/markov.pkl
+
+# Charts trades individuels (générés à la demande)
+display/trades/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Artefacts pip mal placés
+=*
+
+# Claude
+.claude/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/

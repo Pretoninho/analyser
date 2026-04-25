@@ -1,0 +1,29 @@
+# HTTP
+requests==2.31.0
+websocket-client==1.7.0
+
+# Data
+pandas==2.2.0
+numpy==1.26.4
+pyarrow>=14.0.0      # lecture/écriture Parquet
+
+# Storage
+# SQLite est natif Python — pas de dependance
+
+# Dashboard
+streamlit>=1.35.0
+plotly>=5.20.0
+
+# Utils
+python-dotenv==1.0.0
+schedule==1.2.1
+
+# Deep RL
+# PyTorch : installer manuellement avec la commande CUDA adaptée à votre GPU
+# https://pytorch.org/get-started/locally/
+# Exemple RTX 3060 / CUDA 12.x :
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+torch>=2.0.0             # installé séparément avec CUDA
+gymnasium>=0.29.0
+stable-baselines3>=2.3.0
+sb3-contrib>=2.3.0       # RecurrentPPO (LSTM)

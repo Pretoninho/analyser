@@ -1,0 +1,93 @@
+Guide d'utilisation — Pi* BTC Analyser
+Workflow recommandé (ordre strict)
+1. Initialiser et collecter les données
+
+
+# Remplir la DB avec 90 jours d'historique (faire une seule fois)
+python main.py --backfill --days 90
+
+# Vérifier la DB
+python main.py --db
+2. Entraîner l'agent
+
+
+# Premier entraînement : 2000 épisodes minimum
+python main.py --train --episodes 2000
+
+# Reprendre l'entraînement sans repartir de zéro
+python main.py --train --episodes 1000
+
+# Repartir de zéro avec de nouveaux hyperparamètres
+python main.py --train --episodes 3000 --reset --alpha 0.05 --epsilon-decay 0.0005
+3. Évaluer et backtester
+
+
+# Évaluation rapide sur toutes les sessions
+python main.py --eval
+
+# Backtest walk-forward (20% out-of-sample par défaut)
+python main.py --backtest
+
+# Avec export CSV pour analyse externe
+python main.py --backtest --test-ratio 0.25 --export-csv
+4. Surveiller en temps réel
+
+
+# Dashboard Streamlit
+.venv\Scripts\streamlit.exe run dashboard/app.py
+
+# Collecte continue en arrière-plan (dans un terminal séparé)
+python main.py --watch
+
+Optimisations prioritaires
+A. Hyperparamètres Q-learning
+Le problème actuel est que la Q-table a 400 états × 3 actions — un espace très petit. Le vrai levier est la qualité des états.
+
+Paramètre	Défaut	Recommandé	Impact
+--alpha	0.1	0.05	Apprentissage plus stable, évite l'oubli
+--epsilon-decay	0.001	0.0005	Exploration plus longue sur gros datasets
+--episodes	500	3000–5000	Nécessaire pour couvrir toutes les sessions plusieurs fois
+gamma (dans q_agent.py)	0.95	0.95 ✓	Bon pour les épisodes courts
+
+python main.py --train --episodes 5000 --reset --alpha 0.05 --epsilon-decay 0.0005
+B. Enrichir les états (impact maximal)
+Le fichier engine/state.py définit les 400 états. Ajouter des features améliore directement la qualité de la politique. Vérifier que ces dimensions sont utilisées :
+
+Funding rate (signal de sentiment haussier/baissier)
+Open Interest (confirmation de tendance)
+Volume relatif (détection des faux mouvements)
+C. Automatiser le cycle collect → train
+Créer une tâche planifiée Windows pour maintenir le modèle à jour :
+
+
+# Dans un fichier update.bat
+python main.py --backfill --days 3
+python main.py --train --episodes 500
+Puis planifier via Planificateur de tâches Windows → toutes les nuits à 02h00.
+
+D. Métriques cibles pour un bon modèle
+Après --backtest, viser :
+
+Sharpe > 0.5 (acceptable), > 1.0 (bon)
+Win rate > 52%
+Profit factor > 1.2
+Max drawdown < 15%
+Répartition LONG/SHORT équilibrée (si l'agent fait uniquement FLAT → manque d'entraînement)
+
+Diagnostic rapide
+
+# L'agent ne trade pas (100% FLAT) ?
+python main.py --eval   # Vérifier visited_states > 50
+
+# Si visited_states < 50 → relancer --train avec plus d'épisodes
+python main.py --train --episodes 5000 --alpha 0.05
+
+# Vérifier la qualité des données
+python main.py --db
+python main.py --load --limit 20
+La priorité absolue est d'avoir au moins 3000 épisodes avec --alpha 0.05 et --epsilon-decay 0.0005 — c'est ce qui aura le plus d'impact sur les métriques de backtest.
+
+Mets à jour le fichier de mémoire. Efface le contenue précédant et ajoute le LSTM.
+Anticipe tout de suite à ce dont nous avons besoin et ce qu'il faudra modifier voir supprimer.
+
+ Pour la suite, tu peux relancer python main.py --download-binance --start-year 2026 --start-month 4 chaque jour pour maintenir les données à jour, le script gère le merge automatiquement.

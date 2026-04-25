@@ -1,0 +1,861 @@
+C:\Users\PC\AppData\Roaming\Python\Python314\site-packages\numpy\_core\fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+  return _methods._mean(a, axis=axis, dtype=dtype,
+C:\Users\PC\AppData\Roaming\Python\Python314\site-packages\numpy\_core\_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+C:\Users\PC\AppData\Roaming\Python\Python314\site-packages\numpy\_core\fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+  return _methods._mean(a, axis=axis, dtype=dtype,
+C:\Users\PC\AppData\Roaming\Python\Python314\site-packages\numpy\_core\_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+[sweep] 24 combinaisons a tester (sl x rr)
+
+[sweep] 1/24 — sl=0.3%  rr=1.5
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 13 etats
+[qtable] Q(SHORT) > 0        : 18 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 889  Q=+0.2546%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1579  Q=+0.2031%  N=  7  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 255  Q=+0.1527%  N=  9  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1003  Q=+0.1220%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 471  Q=+0.1100%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 259  Q=+0.2197%  N=  7  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1725  Q=+0.2100%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 453  Q=+0.2100%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 501  Q=+0.1578%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1293  Q=+0.1564%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.1516%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1680  Q=+0.1457%  N=  7  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1047  Q=+0.1100%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+         -> return=0.04%  wr=57.1%  pf=1.012
+[sweep] 2/24 — sl=0.3%  rr=2.0
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 13 etats
+[qtable] Q(SHORT) > 0        : 17 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 889  Q=+0.2546%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.2100%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 885  Q=+0.2100%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 471  Q=+0.2100%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1579  Q=+0.2031%  N=  7  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 453  Q=+0.3300%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1725  Q=+0.2764%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 259  Q=+0.2197%  N=  7  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1797  Q=+0.2100%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1293  Q=+0.2051%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.1862%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 240  Q=+0.1500%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 888  Q=+0.0940%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=0.73%  wr=58.3%  pf=1.215
+[sweep] 3/24 — sl=0.3%  rr=2.5
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 19 etats
+[qtable] Q(SHORT) > 0        : 18 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 889  Q=+0.2546%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 255  Q=+0.2334%  N=  9  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1579  Q=+0.2031%  N=  7  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.1933%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 471  Q=+0.1350%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.3664%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.2785%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1293  Q=+0.2479%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 453  Q=+0.2400%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 259  Q=+0.2197%  N=  7  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1797  Q=+0.1350%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1752  Q=+0.1350%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.1350%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=-1.48%  wr=40.0%  pf=0.778
+[sweep] 4/24 — sl=0.3%  rr=3.0
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 18 etats
+[qtable] Q(SHORT) > 0        : 18 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.2767%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 889  Q=+0.2546%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 471  Q=+0.2100%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1579  Q=+0.2031%  N=  7  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 255  Q=+0.1501%  N=  9  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.4564%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 453  Q=+0.3300%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1293  Q=+0.2908%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.2785%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 259  Q=+0.2197%  N=  7  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 501  Q=+0.1878%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.1847%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1032  Q=+0.1585%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=-0.54%  wr=40.0%  pf=0.923
+[sweep] 5/24 — sl=0.4%  rr=1.5
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 17 etats
+[qtable] Q(SHORT) > 0        : 19 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.2878%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 889  Q=+0.2546%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 471  Q=+0.2459%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1579  Q=+0.2031%  N=  7  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 885  Q=+0.1767%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 453  Q=+0.3100%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1725  Q=+0.2564%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.2324%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 259  Q=+0.2197%  N=  7  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1293  Q=+0.2051%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 886  Q=+0.2023%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1752  Q=+0.1767%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1797  Q=+0.1767%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=0.4%  wr=50.0%  pf=1.071
+[sweep] 6/24 — sl=0.4%  rr=2.0
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 17 etats
+[qtable] Q(SHORT) > 0        : 17 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.3100%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 889  Q=+0.2546%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 255  Q=+0.2390%  N=  9  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1579  Q=+0.2031%  N=  7  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 471  Q=+0.1792%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.3764%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1752  Q=+0.3100%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.2926%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.2785%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1293  Q=+0.2622%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 453  Q=+0.2300%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 259  Q=+0.2197%  N=  7  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 501  Q=+0.2078%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=0.34%  wr=44.8%  pf=1.062
+[sweep] 7/24 — sl=0.4%  rr=2.5
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 20 etats
+[qtable] Q(SHORT) > 0        : 19 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.4433%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 471  Q=+0.2792%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 889  Q=+0.2546%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1579  Q=+0.2031%  N=  7  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 255  Q=+0.1501%  N=  9  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.4342%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.4016%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.3799%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1752  Q=+0.3495%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 501  Q=+0.2878%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1293  Q=+0.2519%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 259  Q=+0.2197%  N=  7  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 957  Q=+0.2188%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+         -> return=0.9%  wr=44.7%  pf=1.111
+[sweep] 8/24 — sl=0.4%  rr=3.0
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 19 etats
+[qtable] Q(SHORT) > 0        : 19 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.5767%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 471  Q=+0.3038%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 889  Q=+0.2546%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1579  Q=+0.2031%  N=  7  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 957  Q=+0.1957%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.5142%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1752  Q=+0.4495%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.3907%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.3749%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 501  Q=+0.3678%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 957  Q=+0.3045%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 259  Q=+0.2197%  N=  7  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 886  Q=+0.2023%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+         -> return=2.11%  wr=47.2%  pf=1.271
+[sweep] 9/24 — sl=0.5%  rr=1.5
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 20 etats
+[qtable] Q(SHORT) > 0        : 19 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 889  Q=+0.2546%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.2433%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 255  Q=+0.2203%  N=  9  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1579  Q=+0.2031%  N=  7  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1050  Q=+0.1600%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1606  Q=+0.4843%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 886  Q=+0.4029%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1725  Q=+0.3264%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.3131%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1293  Q=+0.2479%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1752  Q=+0.2433%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1624  Q=+0.2415%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 960  Q=+0.2364%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=-0.37%  wr=52.5%  pf=0.97
+[sweep] 10/24 — sl=0.5%  rr=2.0
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 23 etats
+[qtable] Q(SHORT) > 0        : 21 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.4100%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1050  Q=+0.3100%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 889  Q=+0.2546%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 471  Q=+0.2459%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1101  Q=+0.2300%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1606  Q=+0.4843%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1725  Q=+0.4142%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 886  Q=+0.4029%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 906  Q=+0.3708%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.3549%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1752  Q=+0.3162%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 240  Q=+0.3100%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 501  Q=+0.2878%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=1.21%  wr=47.8%  pf=1.116
+[sweep] 11/24 — sl=0.5%  rr=2.5
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 23 etats
+[qtable] Q(SHORT) > 0        : 19 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.5767%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1050  Q=+0.3567%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1101  Q=+0.3300%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 471  Q=+0.2871%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 237  Q=+0.2643%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.5142%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1606  Q=+0.4843%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 240  Q=+0.4600%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1752  Q=+0.4412%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 886  Q=+0.4029%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 501  Q=+0.3878%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.3844%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 957  Q=+0.2831%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+         -> return=2.97%  wr=50.0%  pf=1.305
+[sweep] 12/24 — sl=0.5%  rr=3.0
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 24 etats
+[qtable] Q(SHORT) > 0        : 22 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1101  Q=+0.4300%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1050  Q=+0.3988%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 471  Q=+0.3705%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 237  Q=+0.3643%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1770  Q=+0.2989%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.6142%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 240  Q=+0.6100%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1752  Q=+0.5662%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 501  Q=+0.4878%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1606  Q=+0.4843%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 886  Q=+0.4029%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 957  Q=+0.3902%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.3367%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=6.76%  wr=54.5%  pf=1.686
+[sweep] 13/24 — sl=0.6%  rr=1.5
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 23 etats
+[qtable] Q(SHORT) > 0        : 19 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1050  Q=+0.3587%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1770  Q=+0.3100%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 889  Q=+0.2546%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 237  Q=+0.2497%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 471  Q=+0.2137%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1606  Q=+0.4676%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1725  Q=+0.3964%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 886  Q=+0.3756%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1293  Q=+0.2908%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.2799%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.2785%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 501  Q=+0.2478%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1752  Q=+0.2328%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=1.94%  wr=51.2%  pf=1.201
+[sweep] 14/24 — sl=0.6%  rr=2.0
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 24 etats
+[qtable] Q(SHORT) > 0        : 22 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1050  Q=+0.5387%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1770  Q=+0.5100%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 237  Q=+0.3697%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 471  Q=+0.2883%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1101  Q=+0.2700%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.4742%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1606  Q=+0.4676%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 240  Q=+0.3900%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1752  Q=+0.3828%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 886  Q=+0.3756%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 501  Q=+0.3678%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.3407%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.3313%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=4.59%  wr=51.0%  pf=1.397
+[sweep] 15/24 — sl=0.6%  rr=2.5
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 27 etats
+[qtable] Q(SHORT) > 0        : 22 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1050  Q=+0.5075%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 237  Q=+0.4897%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1101  Q=+0.3900%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 471  Q=+0.3883%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1119  Q=+0.3742%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.5942%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 240  Q=+0.5700%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1752  Q=+0.5328%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 501  Q=+0.4878%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1606  Q=+0.4676%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 886  Q=+0.3756%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 957  Q=+0.3474%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.3117%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=8.91%  wr=56.2%  pf=1.844
+[sweep] 16/24 — sl=0.6%  rr=3.0
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 23 etats
+[qtable] Q(SHORT) > 0        : 23 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 237  Q=+0.6097%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1101  Q=+0.5100%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 471  Q=+0.4883%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.4336%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1119  Q=+0.4114%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.6139%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1752  Q=+0.4691%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1606  Q=+0.4676%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 957  Q=+0.4392%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.3867%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 240  Q=+0.3852%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 886  Q=+0.3756%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 906  Q=+0.3623%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=5.36%  wr=57.9%  pf=1.598
+[sweep] 17/24 — sl=0.8%  rr=1.5
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 22 etats
+[qtable] Q(SHORT) > 0        : 19 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 237  Q=+0.7297%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1050  Q=+0.4987%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.4433%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 1536  Q=+0.2605%  N=  8  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 471  Q=+0.2550%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.4342%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 886  Q=+0.3735%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 501  Q=+0.3678%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1752  Q=+0.3162%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.3152%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 240  Q=+0.3100%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.2907%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1122  Q=+0.2706%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=1.59%  wr=53.7%  pf=1.156
+[sweep] 18/24 — sl=0.8%  rr=2.0
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 27 etats
+[qtable] Q(SHORT) > 0        : 20 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 237  Q=+0.9697%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1050  Q=+0.4875%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 471  Q=+0.3883%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1536  Q=+0.3687%  N=  8  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1101  Q=+0.3500%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.5942%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1752  Q=+0.5162%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 501  Q=+0.4516%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 886  Q=+0.3735%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1581  Q=+0.3693%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1797  Q=+0.3212%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 957  Q=+0.3045%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.3001%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=6.22%  wr=56.2%  pf=1.475
+[sweep] 19/24 — sl=0.8%  rr=2.5
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 25 etats
+[qtable] Q(SHORT) > 0        : 21 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 237  Q=+1.1169%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1101  Q=+0.4825%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.4110%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 471  Q=+0.3780%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1119  Q=+0.3714%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.6139%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 957  Q=+0.4106%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.3924%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.3867%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 886  Q=+0.3735%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1797  Q=+0.3475%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1149  Q=+0.2635%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 501  Q=+0.2563%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=0.71%  wr=55.0%  pf=1.07
+[sweep] 20/24 — sl=0.8%  rr=3.0
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 25 etats
+[qtable] Q(SHORT) > 0        : 20 etats
+
+[qtable] Top 10 etats LONG :
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 237  Q=+1.1580%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.5443%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1119  Q=+0.4514%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 471  Q=+0.4447%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 957  Q=+0.2847%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.6939%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 960  Q=+0.4867%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.4847%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 886  Q=+0.3735%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 957  Q=+0.3528%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1149  Q=+0.3207%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 240  Q=+0.3098%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 501  Q=+0.2563%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=-1.52%  wr=52.6%  pf=0.881
+[sweep] 21/24 — sl=1.0%  rr=1.5
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 26 etats
+[qtable] Q(SHORT) > 0        : 20 etats
+
+[qtable] Top 10 etats LONG :
+  state 386  Q=+1.7200%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 237  Q=+0.9097%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1101  Q=+0.7300%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1533  Q=+0.5150%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1050  Q=+0.4275%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 453  Q=+0.4100%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 240  Q=+0.6155%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1725  Q=+0.6154%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 886  Q=+0.5073%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 501  Q=+0.4878%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1752  Q=+0.3995%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1581  Q=+0.3293%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1677  Q=+0.3116%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 906  Q=+0.2587%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=0.61%  wr=53.5%  pf=1.057
+[sweep] 22/24 — sl=1.0%  rr=2.0
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 26 etats
+[qtable] Q(SHORT) > 0        : 21 etats
+
+[qtable] Top 10 etats LONG :
+  state 386  Q=+1.7200%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 237  Q=+1.1169%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1101  Q=+1.0025%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 453  Q=+0.5739%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 471  Q=+0.4077%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1770  Q=+0.4056%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.6751%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1677  Q=+0.5116%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 886  Q=+0.5073%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 906  Q=+0.3741%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 240  Q=+0.3553%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.3367%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 957  Q=+0.3249%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1797  Q=+0.3142%  N=  6  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=-3.23%  wr=52.6%  pf=0.756
+[sweep] 23/24 — sl=1.0%  rr=2.5
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 24 etats
+[qtable] Q(SHORT) > 0        : 20 etats
+
+[qtable] Top 10 etats LONG :
+  state 386  Q=+1.7200%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 237  Q=+1.1780%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1101  Q=+0.7866%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1770  Q=+0.5722%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 471  Q=+0.4910%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+
+[qtable] Top 10 etats SHORT :
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 1725  Q=+0.7751%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1677  Q=+0.7116%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 886  Q=+0.5073%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 906  Q=+0.4895%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.4617%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 240  Q=+0.4553%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1149  Q=+0.3350%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1032  Q=+0.3014%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+         -> return=-5.63%  wr=48.5%  pf=0.549
+[sweep] 24/24 — sl=1.0%  rr=3.0
+[binance] 3,286,080 bougies chargees (2020-01-01 - 2026-03-31)
+[qtable] 2282 jours | train=1825 | test=457 (20%)
+[q_agent] Q-table sauvegardee : C:\Users\PC\analyser\db\stats_agent.pkl (1825 episodes)
+
+[qtable] Etats visites       : 355 / 1944
+[qtable] Etats >= 5 samples  : 60 / 1944
+[qtable] Moyenne N / etat    : 2.8
+[qtable] Q(LONG)  > 0        : 26 etats
+[qtable] Q(SHORT) > 0        : 20 etats
+
+[qtable] Top 10 etats LONG :
+  state 386  Q=+1.7200%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 241  Q=+1.4525%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+  state 237  Q=+1.2780%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1101  Q=+0.8866%  N=  5  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 904  Q=+0.6066%  N=  9  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 284  Q=+0.5105%  N=  5  {'month_ctx': np.int64(0), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(2)}
+  state 1770  Q=+0.4787%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1552  Q=+0.4671%  N= 11  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 471  Q=+0.4470%  N=  6  {'month_ctx': np.int64(0), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1555  Q=+0.3973%  N=  9  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(1)}
+
+[qtable] Top 10 etats SHORT :
+  state 1677  Q=+0.9116%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+  state 1725  Q=+0.8751%  N=  5  {'month_ctx': np.int64(2), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1034  Q=+0.8618%  N=  6  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 906  Q=+0.6049%  N= 13  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(4), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 960  Q=+0.5867%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 890  Q=+0.5222%  N= 12  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(2)}
+  state 886  Q=+0.5073%  N= 11  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(1)}
+  state 1032  Q=+0.4264%  N=  8  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(2), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 1149  Q=+0.4064%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(2), 'london_ctx': np.int64(0), 'macro_ctx': np.int64(7), 'sweep_ctx': np.int64(2), 'pool_ctx': np.int64(0)}
+  state 957  Q=+0.3528%  N=  7  {'month_ctx': np.int64(1), 'day_ctx': np.int64(1), 'london_ctx': np.int64(1), 'macro_ctx': np.int64(2), 'sweep_ctx': np.int64(1), 'pool_ctx': np.int64(0)}
+         -> return=-5.63%  wr=48.5%  pf=0.549
+
+[sweep] Resultats sauvegardes : db\sweep_results.csv
+
+[sweep] Top 5 par return total :
+    sl%    rr     N     WR%     Ret%      PF     DD%
+  --------------------------------------------------
+    0.6   2.5    48   56.2%   +8.91%   1.844  -2.06%
+    0.5   3.0    44   54.5%   +6.76%   1.686  -3.12%
+    0.8   2.0    48   56.2%   +6.22%   1.475  -3.55%
+    0.6   3.0    38   57.9%   +5.36%   1.598  -1.91%
+    0.6   2.0    51   51.0%   +4.59%   1.397  -3.30%
