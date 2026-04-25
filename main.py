@@ -425,7 +425,8 @@ def run_build_qtable(test_ratio: float = 0.2, min_samples: int = 10,
                      exit_hm: int = 960, sl_pct: float = 0.0, rr: float = 2.0,
                      target_pool: bool = False, aligned_only: bool = False,
                      skip_macros: frozenset = frozenset(),
-                     skip_days: frozenset = frozenset()):
+                     skip_days: frozenset = frozenset(),
+                     macro_rules: dict = None):
     """
     Construit la Q-table empiriquement depuis les donnees historiques.
     Entre a l'ouverture de la macro, sort a exit_hm (16:00 ET par defaut).
@@ -531,6 +532,12 @@ def run_build_qtable(test_ratio: float = 0.2, min_samples: int = 10,
                 ref_l = ctx.get("session_low")
 
             pc = compute_pool_ctx(pre_high, pre_low, ref_h, ref_l, pwh, pwl)
+
+            # Regles directionnelles : (mac_idx, lc, pc) -> sc autorise
+            if macro_rules:
+                allowed_sc = macro_rules.get((mac_idx, lc, pc))
+                if allowed_sc is not None and sc not in allowed_sc:
+                    continue
 
             state    = encode(mc, dc, lc, mac_idx, sc, pc)
             entry_px = float(first["open"])
@@ -717,7 +724,8 @@ def run_backtest_stats(test_ratio: float = 0.2, q_threshold: float = 0.0,
                        target_pool: bool = False, aligned_only: bool = False,
                        skip_macros: frozenset = frozenset(),
                        skip_days: frozenset = frozenset(),
-                       entry_mode: str = "baseline"):
+                       entry_mode: str = "baseline",
+                       macro_rules: dict = None):
     """
     Backtest coherent avec run_build_qtable : meme boucle directe, meme exit_hm.
     exit_hm     : sortie en minutes ET (defaut 960 = 16:00 ET)
@@ -774,7 +782,8 @@ def run_backtest_stats(test_ratio: float = 0.2, q_threshold: float = 0.0,
     filter_label  = " | aligned-only" if aligned_only else ""
     skip_label    = f" | muettes={sorted(skip_macros)}" if skip_macros else ""
     days_label    = f" | skip-days={sorted(skip_days)}" if skip_days else ""
-    print(f"[backtest_stats] Agent : {agent._episode_count} episodes | seuil Q > {q_threshold} | sortie {exit_label}{filter_label}{skip_label}{days_label} | entree={entry_mode}\n")
+    rules_label   = f" | regles={macro_rules}" if macro_rules else ""
+    print(f"[backtest_stats] Agent : {agent._episode_count} episodes | seuil Q > {q_threshold} | sortie {exit_label}{filter_label}{skip_label}{days_label}{rules_label} | entree={entry_mode}\n")
 
     trades_list = []   # (mac_idx, pnl, exit_reason, entry_px, exit_px, tp_px, sl_px, n_candles, date, direction, state)
     eq_curve    = [1.0]
@@ -837,6 +846,13 @@ def run_backtest_stats(test_ratio: float = 0.2, q_threshold: float = 0.0,
                 ref_l = ctx.get("session_low")
 
             pc    = compute_pool_ctx(pre_high, pre_low, ref_h, ref_l, pwh, pwl)
+
+            # Regles directionnelles : (mac_idx, lc, pc) -> sc autorise
+            if macro_rules:
+                allowed_sc = macro_rules.get((mac_idx, lc, pc))
+                if allowed_sc is not None and sc not in allowed_sc:
+                    continue
+
             state = encode(mc, dc, lc, mac_idx, sc, pc)
 
             action = agent.act(state, training=False)
@@ -1391,6 +1407,9 @@ def main():
                         help="Indices de macros a mettre au silence, separes par virgule (ex: 3,5,6 pour 10:50/12:50/13:50)")
     parser.add_argument("--skip-days",      type=str, default="",
                         help="Jours de la semaine a ignorer (0=Lun, 1=Mar, ..., 6=Dim), ex: 0 pour ignorer lundi")
+    parser.add_argument("--macro-rules",    type=str, default="",
+                        help="Regles directionnelles par contexte. Format: 'mac,lc,pc:sc[+sc]' separes par '|'. "
+                             "Ex: '2,1,1:1' = macro 09:50 en contexte RAID_H+BSL_swept -> sc=1 (SW_H) uniquement")
     parser.add_argument("--entry-mode",     type=str, default="baseline",
                         choices=["baseline", "ote", "fvg"],
                         help="Technique d'entree : baseline=open macro, ote=retracement 62-79%%, fvg=retour dans le gap")
@@ -1398,6 +1417,24 @@ def main():
 
     skip_macros = frozenset(int(x) for x in args.skip_macros.split(",") if x.strip().isdigit())
     skip_days   = frozenset(int(x) for x in args.skip_days.split(",")   if x.strip().isdigit())
+
+    macro_rules = None
+    if args.macro_rules.strip():
+        macro_rules = {}
+        for part in args.macro_rules.split("|"):
+            part = part.strip()
+            if ":" not in part:
+                continue
+            key_str, val_str = part.split(":", 1)
+            key_parts = [x.strip() for x in key_str.split(",")]
+            if len(key_parts) != 3:
+                continue
+            try:
+                key = (int(key_parts[0]), int(key_parts[1]), int(key_parts[2]))
+                allowed = frozenset(int(x) for x in val_str.split("+") if x.strip().isdigit())
+                macro_rules[key] = allowed
+            except ValueError:
+                continue
 
     init_db()
 
@@ -1466,7 +1503,7 @@ def main():
                            exit_hm=args.exit_hm, sl_pct=args.sl_pct, rr=args.rr,
                            target_pool=args.target_pool, aligned_only=args.aligned_only,
                            skip_macros=skip_macros, skip_days=skip_days,
-                           entry_mode=args.entry_mode)
+                           entry_mode=args.entry_mode, macro_rules=macro_rules)
         return
 
     if args.backtest_deep:
@@ -1477,7 +1514,8 @@ def main():
         run_build_qtable(test_ratio=args.test_ratio, min_samples=args.min_samples,
                          exit_hm=args.exit_hm, sl_pct=args.sl_pct, rr=args.rr,
                          target_pool=args.target_pool, aligned_only=args.aligned_only,
-                         skip_macros=skip_macros, skip_days=skip_days)
+                         skip_macros=skip_macros, skip_days=skip_days,
+                         macro_rules=macro_rules)
         return
 
     if args.plot_trades:
