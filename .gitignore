@@ -15,6 +15,13 @@ db/markov.pkl
 # Charts trades individuels (générés à la demande)
 display/trades/
 
+# Outputs générés par backtest / analyse (régénérables)
+db/backtest_trades.csv
+db/trades_log.csv
+db/sweep_log.txt
+db/qtable_stats.xlsx
+display/analysis/
+
 # Python
 __pycache__/
 *.pyc

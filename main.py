@@ -313,10 +313,13 @@ def run_download_binance(start_year: int, start_month: int,
 def _sim_trade_rr(exit_df: "pd.DataFrame", entry_px: float, direction: int,
                   sl_pct: float, tp_pct: float,
                   fee: float = 0.0005, slip: float = 0.0002,
-                  verbose: bool = False):
+                  verbose: bool = False,
+                  trailing_delta: float = 0.0):
     """
     Simule un trade avec SL et TP sur les bougies 1min de exit_df.
     direction : +1 LONG, -1 SHORT
+    trailing_delta > 0 : sortie TRAIL si drawdown du PnL non realise >= trailing_delta
+                         depuis le meilleur PnL non realise observe.
     verbose=False : retourne float (pnl)
     verbose=True  : retourne (pnl, exit_reason, exit_px, tp_px, sl_px, n_candles)
     """
@@ -327,9 +330,12 @@ def _sim_trade_rr(exit_df: "pd.DataFrame", entry_px: float, direction: int,
         tp_px = entry_px * (1 - tp_pct)
         sl_px = entry_px * (1 + sl_pct)
 
+    best_unrealized = 0.0
+
     for i, (_, row) in enumerate(exit_df.iterrows()):
         h = float(row["high"])
         l = float(row["low"])
+        c = float(row["close"])
         if direction == 1:
             if l <= sl_px:
                 pnl = -sl_pct - fee - slip * 2
@@ -344,6 +350,13 @@ def _sim_trade_rr(exit_df: "pd.DataFrame", entry_px: float, direction: int,
             if l <= tp_px:
                 pnl = tp_pct - fee - slip * 2
                 return (pnl, "TP", tp_px, tp_px, sl_px, i + 1) if verbose else pnl
+
+        if trailing_delta > 0:
+            unrealized = direction * (c - entry_px) / entry_px - fee - slip * 2
+            if unrealized > best_unrealized:
+                best_unrealized = unrealized
+            if (best_unrealized - unrealized) >= trailing_delta:
+                return (unrealized, "TRAIL", c, tp_px, sl_px, i + 1) if verbose else unrealized
 
     close = float(exit_df.iloc[-1]["close"])
     raw = direction * (close - entry_px) / entry_px
@@ -423,6 +436,7 @@ def _find_fvg_entry(macro_df: "pd.DataFrame", direction: int, n_search: int = 12
 
 def run_build_qtable(test_ratio: float = 0.2, min_samples: int = 10,
                      exit_hm: int = 960, sl_pct: float = 0.0, rr: float = 2.0,
+                     trailing_delta: float = 0.0,
                      target_pool: bool = False, aligned_only: bool = False,
                      skip_macros: frozenset = frozenset(),
                      skip_days: frozenset = frozenset(),
@@ -431,6 +445,7 @@ def run_build_qtable(test_ratio: float = 0.2, min_samples: int = 10,
     Construit la Q-table empiriquement depuis les donnees historiques.
     Entre a l'ouverture de la macro, sort a exit_hm (16:00 ET par defaut).
     sl_pct > 0  : simulation SL/TP fixes (TP = sl_pct * rr).
+    trailing_delta > 0 : sortie TRAIL si drawdown du PnL non realise >= trailing_delta.
     target_pool : TP dynamique = pool oppose (SSL pour SHORT apres BSL swept,
                   BSL pour LONG apres SSL swept). SL = sl_pct au-dessus du sweep.
     Etat 1944 : month x day x london x macro x sweep x pool(BSL/SSL)
@@ -553,14 +568,16 @@ def run_build_qtable(test_ratio: float = 0.2, min_samples: int = 10,
                     sl_long_pct = sl_pct + max(0.0, (entry_px - sweep_low) / entry_px)
                     if tp_long_pct > sl_long_pct > 0:
                         pnl_long = _sim_trade_rr(exit_df, entry_px * (1 + SLIPPAGE), +1,
-                                                 sl_long_pct, tp_long_pct, FEE_RATE, SLIPPAGE)
+                                                 sl_long_pct, tp_long_pct, FEE_RATE, SLIPPAGE,
+                                                 trailing_delta=trailing_delta)
                         tp_long = True
                 if pc == 1 and ref_l is not None and ref_l < entry_px:  # BSL swept -> SHORT -> TP = ref_l (SSL)
                     tp_short_pct = (entry_px - ref_l) / entry_px
                     sl_short_pct = sl_pct + max(0.0, (sweep_high - entry_px) / entry_px)
                     if tp_short_pct > sl_short_pct > 0:
                         pnl_short = _sim_trade_rr(exit_df, entry_px * (1 - SLIPPAGE), -1,
-                                                  sl_short_pct, tp_short_pct, FEE_RATE, SLIPPAGE)
+                                                  sl_short_pct, tp_short_pct, FEE_RATE, SLIPPAGE,
+                                                  trailing_delta=trailing_delta)
                         tp_short = True
 
                 if tp_long is None:
@@ -574,9 +591,11 @@ def run_build_qtable(test_ratio: float = 0.2, min_samples: int = 10,
             elif sl_pct > 0:
                 tp_pct_val = sl_pct * rr
                 pnl_long  = _sim_trade_rr(exit_df, entry_px * (1 + SLIPPAGE), +1,
-                                          sl_pct, tp_pct_val, FEE_RATE, SLIPPAGE)
+                                          sl_pct, tp_pct_val, FEE_RATE, SLIPPAGE,
+                                          trailing_delta=trailing_delta)
                 pnl_short = _sim_trade_rr(exit_df, entry_px * (1 - SLIPPAGE), -1,
-                                          sl_pct, tp_pct_val, FEE_RATE, SLIPPAGE)
+                                          sl_pct, tp_pct_val, FEE_RATE, SLIPPAGE,
+                                          trailing_delta=trailing_delta)
             else:
                 exit_px     = float(exit_df.iloc[-1]["close"])
                 entry_long  = entry_px * (1 + SLIPPAGE)
@@ -721,6 +740,7 @@ def run_train_stats(episodes: int = 2000, reset: bool = False, rr: float = 2.0):
 
 def run_backtest_stats(test_ratio: float = 0.2, q_threshold: float = 0.0,
                        exit_hm: int = 960, sl_pct: float = 0.0, rr: float = 2.0,
+                       trailing_delta: float = 0.0,
                        target_pool: bool = False, aligned_only: bool = False,
                        skip_macros: frozenset = frozenset(),
                        skip_days: frozenset = frozenset(),
@@ -730,6 +750,7 @@ def run_backtest_stats(test_ratio: float = 0.2, q_threshold: float = 0.0,
     Backtest coherent avec run_build_qtable : meme boucle directe, meme exit_hm.
     exit_hm     : sortie en minutes ET (defaut 960 = 16:00 ET)
     sl_pct      : si > 0, SL en % du prix d'entree
+    trailing_delta : si > 0, sortie TRAIL sur drawdown du PnL non realise.
     target_pool : TP dynamique = pool oppose (SSL pour SHORT apres BSL, BSL pour LONG apres SSL)
     """
     from engine.stats_state import (
@@ -783,7 +804,8 @@ def run_backtest_stats(test_ratio: float = 0.2, q_threshold: float = 0.0,
     skip_label    = f" | muettes={sorted(skip_macros)}" if skip_macros else ""
     days_label    = f" | skip-days={sorted(skip_days)}" if skip_days else ""
     rules_label   = f" | regles={macro_rules}" if macro_rules else ""
-    print(f"[backtest_stats] Agent : {agent._episode_count} episodes | seuil Q > {q_threshold} | sortie {exit_label}{filter_label}{skip_label}{days_label}{rules_label} | entree={entry_mode}\n")
+    trail_label = f" | trail={trailing_delta*100:.2f}%" if trailing_delta > 0 else ""
+    print(f"[backtest_stats] Agent : {agent._episode_count} episodes | seuil Q > {q_threshold} | sortie {exit_label}{filter_label}{skip_label}{days_label}{rules_label}{trail_label} | entree={entry_mode}\n")
 
     trades_list = []   # (mac_idx, pnl, exit_reason, entry_px, exit_px, tp_px, sl_px, n_candles, date, direction, state)
     eq_curve    = [1.0]
@@ -897,7 +919,8 @@ def run_backtest_stats(test_ratio: float = 0.2, q_threshold: float = 0.0,
                     if tp_pct_v > sl_pct_v > 0:
                         pnl, exit_reason, exit_px_log, tp_px_log, sl_px_log, n_candles = \
                             _sim_trade_rr(exit_df, slipped, +1, sl_pct_v, tp_pct_v,
-                                          FEE_RATE, SLIPPAGE, verbose=True)
+                                          FEE_RATE, SLIPPAGE, verbose=True,
+                                          trailing_delta=trailing_delta)
                     else:
                         continue
                 elif direction == -1 and pc == 1 and ref_l is not None and ref_l < entry_px:
@@ -906,7 +929,8 @@ def run_backtest_stats(test_ratio: float = 0.2, q_threshold: float = 0.0,
                     if tp_pct_v > sl_pct_v > 0:
                         pnl, exit_reason, exit_px_log, tp_px_log, sl_px_log, n_candles = \
                             _sim_trade_rr(exit_df, slipped, -1, sl_pct_v, tp_pct_v,
-                                          FEE_RATE, SLIPPAGE, verbose=True)
+                                          FEE_RATE, SLIPPAGE, verbose=True,
+                                          trailing_delta=trailing_delta)
                     else:
                         continue
                 else:
@@ -914,7 +938,8 @@ def run_backtest_stats(test_ratio: float = 0.2, q_threshold: float = 0.0,
             elif effective_sl > 0:
                 pnl, exit_reason, exit_px_log, tp_px_log, sl_px_log, n_candles = \
                     _sim_trade_rr(exit_df, slipped, direction,
-                                  effective_sl, effective_sl * rr, FEE_RATE, SLIPPAGE, verbose=True)
+                                  effective_sl, effective_sl * rr, FEE_RATE, SLIPPAGE, verbose=True,
+                                  trailing_delta=trailing_delta)
             else:
                 exit_px_v = float(exit_df.iloc[-1]["close"])
                 entry_v   = entry_px * (1 + direction * SLIPPAGE)
@@ -950,6 +975,7 @@ def run_backtest_stats(test_ratio: float = 0.2, q_threshold: float = 0.0,
 
     n_tp  = reasons.count("TP")
     n_sl  = reasons.count("SL")
+    n_tr  = reasons.count("TRAIL")
     n_eod = reasons.count("EOD")
 
     total_return  = equity - 1.0
@@ -980,12 +1006,18 @@ def run_backtest_stats(test_ratio: float = 0.2, q_threshold: float = 0.0,
     print(f"  --- Sorties -------------------------------------------")
     print(f"  TP touche           : {n_tp:3d}  ({n_tp/n_total_trades*100:4.0f}%)")
     print(f"  SL touche           : {n_sl:3d}  ({n_sl/n_total_trades*100:4.0f}%)")
-    print(f"  EOD (sans SL/TP)    : {n_eod:3d}  ({n_eod/n_total_trades*100:4.0f}%)")
-    if n_tp + n_sl > 0:
-        avg_tp_dur = np.mean([t[7] for t in trades_list if t[2] == "TP"])
-        avg_sl_dur = np.mean([t[7] for t in trades_list if t[2] == "SL"])
-        print(f"  Duree moy TP        : {avg_tp_dur:.0f} min")
-        print(f"  Duree moy SL        : {avg_sl_dur:.0f} min")
+    print(f"  TRAIL touche        : {n_tr:3d}  ({n_tr/n_total_trades*100:4.0f}%)")
+    print(f"  EOD (sans SL/TP/TRAIL): {n_eod:3d}  ({n_eod/n_total_trades*100:4.0f}%)")
+    if n_tp + n_sl + n_tr > 0:
+        if n_tp > 0:
+            avg_tp_dur = np.mean([t[7] for t in trades_list if t[2] == "TP"])
+            print(f"  Duree moy TP        : {avg_tp_dur:.0f} min")
+        if n_sl > 0:
+            avg_sl_dur = np.mean([t[7] for t in trades_list if t[2] == "SL"])
+            print(f"  Duree moy SL        : {avg_sl_dur:.0f} min")
+        if n_tr > 0:
+            avg_tr_dur = np.mean([t[7] for t in trades_list if t[2] == "TRAIL"])
+            print(f"  Duree moy TRAIL     : {avg_tr_dur:.0f} min")
     print(f"  --- Performance ---------------------------------------")
     print(f"  Return total        : {total_return*100:+.2f}%")
     print(f"  Sharpe annualise    : {sharpe:+.3f}")
@@ -1397,10 +1429,12 @@ def main():
                         help="Ratio Risk:Reward (defaut: 2.0 => TP = SL * 2)")
     parser.add_argument("--target-pool",    action="store_true",
                         help="TP dynamique ICT : SSL pour SHORT apres BSL swept, BSL pour LONG apres SSL swept. Necessite --sl-pct.")
+    parser.add_argument("--trailing-delta", type=float, default=0.0,
+                        help="Trailing stop en %% decimal (ex: 0.002 = 0.2%%). Sortie si drawdown du PnL non realise >= trailing_delta.")
     parser.add_argument("--plot-trades",    type=int, default=0, metavar="N",
                         help="Generer N graphiques de trades depuis le dernier log CSV (ex: --plot-trades 20)")
-    parser.add_argument("--plot-filter",    type=str, default=None, choices=["TP","SL","EOD"],
-                        help="Filtrer les graphiques par type de sortie : TP, SL ou EOD")
+    parser.add_argument("--plot-filter",    type=str, default=None, choices=["TP","SL","TRAIL","EOD"],
+                        help="Filtrer les graphiques par type de sortie : TP, SL, TRAIL ou EOD")
     parser.add_argument("--aligned-only",   action="store_true",
                         help="Ne trader que si sweep_ctx != 0 (sweep detecte a l'entree macro). Filtre les setups sans signal ICT.")
     parser.add_argument("--skip-macros",    type=str, default="",
@@ -1501,6 +1535,7 @@ def main():
     if args.backtest_stats:
         run_backtest_stats(test_ratio=args.test_ratio, q_threshold=args.q_threshold,
                            exit_hm=args.exit_hm, sl_pct=args.sl_pct, rr=args.rr,
+                           trailing_delta=args.trailing_delta,
                            target_pool=args.target_pool, aligned_only=args.aligned_only,
                            skip_macros=skip_macros, skip_days=skip_days,
                            entry_mode=args.entry_mode, macro_rules=macro_rules)
@@ -1513,6 +1548,7 @@ def main():
     if args.build_qtable:
         run_build_qtable(test_ratio=args.test_ratio, min_samples=args.min_samples,
                          exit_hm=args.exit_hm, sl_pct=args.sl_pct, rr=args.rr,
+                         trailing_delta=args.trailing_delta,
                          target_pool=args.target_pool, aligned_only=args.aligned_only,
                          skip_macros=skip_macros, skip_days=skip_days,
                          macro_rules=macro_rules)

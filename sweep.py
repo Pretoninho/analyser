@@ -16,6 +16,14 @@ EXIT_HM      = 960                         # sortie 16:00 ET
 TEST_RATIO   = 0.2
 MIN_SAMPLES  = 5
 
+# Parametres actifs recommandes (verrouilles pour eviter le drift)
+ACTIVE_SL_PCT = 0.006
+ACTIVE_RR     = 2.5
+
+# True  -> execute uniquement la config active recommendee
+# False -> execute le sweep complet SL_VALUES x RR_VALUES
+LOCK_ACTIVE_CONFIG = True
+
 # Regles directionnelles : (mac_idx, lc, pc) -> sc autorise (frozenset vide = toujours skip)
 # 09:50 (mac=2) : RAID_H x BSL_swept -> SW_H uniquement (sc=1 -> SHORT)
 # 09:50 (mac=2) : NO_RAID x BSL_swept -> signal non fiable, bloque
@@ -24,8 +32,12 @@ MACRO_RULES  = {
     (2, 0, 1): frozenset(),
 }
 
-SL_VALUES = [0.003, 0.004, 0.005, 0.006, 0.008, 0.010]
-RR_VALUES = [1.5, 2.0, 2.5, 3.0]
+if LOCK_ACTIVE_CONFIG:
+    SL_VALUES = [ACTIVE_SL_PCT]
+    RR_VALUES = [ACTIVE_RR]
+else:
+    SL_VALUES = [0.003, 0.004, 0.005, 0.006, 0.008, 0.010]
+    RR_VALUES = [1.5, 2.0, 2.5, 3.0]
 
 OUT = Path("db/sweep_results.csv")
 
@@ -98,6 +110,8 @@ def _run_one(sl_pct, rr):
 
 def main():
     combos = list(itertools.product(SL_VALUES, RR_VALUES))
+    mode = "LOCK_ACTIVE_CONFIG" if LOCK_ACTIVE_CONFIG else "FULL_SWEEP"
+    print(f"[sweep] mode={mode}")
     print(f"[sweep] {len(combos)} combinaisons a tester (sl x rr)\n")
 
     results = []

@@ -22,6 +22,7 @@ Liquidite :
 
 import pytz
 import pandas as pd
+from datetime import date
 
 N_STATES  = 1944   # 3*3*3*8*3*3
 N_ACTIONS = 3      # 0=FLAT  1=LONG  2=SHORT
@@ -148,7 +149,8 @@ def build_weekly_levels(df_1m: pd.DataFrame) -> dict:
         prev_wk, prev_yr = wk - 1, yr
         if prev_wk == 0:
             prev_yr -= 1
-            prev_wk = 52   # simplification — semaine 53 traitee comme 52
+            # 28 Dec est toujours dans la derniere semaine ISO de l'annee
+            prev_wk = date(prev_yr, 12, 28).isocalendar().week
         pw = weekly_dict.get((prev_yr, prev_wk))
         result[row.date_et] = pw if pw else (None, None)
 
