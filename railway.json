@@ -1,0 +1,10 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "buildCommand": "pip install -r requirements-live.txt"
+  },
+  "deploy": {
+    "startCommand": "python live_signal.py",
+    "restartPolicyType": "NEVER"
+  }
+}
