@@ -1,7 +1,9 @@
 """
-Analyse approfondie de la macro 09:50 (mac_idx=2) — full dataset + charts.
+Analyse approfondie de la macro 11:50 (mac_idx=4) — full dataset + charts.
 """
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.stdout.reconfigure(encoding="utf-8")
 
 import numpy as np
@@ -18,7 +20,7 @@ from engine.stats_state import (
 )
 from main import _sim_trade_rr
 
-MAC_START  = 590
+MAC_START  = 710
 EXIT_HM    = 960
 SL_PCT     = 0.006
 RR         = 2.5
@@ -53,7 +55,7 @@ for date, grp in df.groupby("date_et"):
 
 print(f"[analyse] {len(episodes)} jours totaux")
 
-# ── Collecte des setups 09:50 ────────────────────────────────────
+# ── Collecte des setups 11:50 ────────────────────────────────────
 records = []
 for day_df, date in zip(episodes, dates):
     if date.weekday() in SKIP_DAYS:
@@ -142,7 +144,7 @@ for day_df, date in zip(episodes, dates):
 
 df_t = pd.DataFrame(records)
 N    = len(df_t)
-print(f"[analyse] {N} setups 09:50 (full dataset, sans lundi, aligned_only)")
+print(f"[analyse] {N} setups 11:50 (full dataset, sans lundi, aligned_only)")
 
 # ── Helpers ──────────────────────────────────────────────────────
 def stats(sub):
@@ -162,7 +164,7 @@ day_names = {1: "Mardi", 2: "Mercredi", 3: "Jeudi", 4: "Vendredi", 5: "Samedi", 
 
 # ── Synthese console ─────────────────────────────────────────────
 print("\n" + "="*62)
-print("  MACRO 09:50 — ANALYSE COMPLETE (train + test, sans lundi)")
+print("  MACRO 11:50 — ANALYSE COMPLETE (train + test, sans lundi)")
 print("="*62)
 
 s = stats(df_t)
@@ -215,7 +217,7 @@ print("="*62)
 
 # ── CHART 1 : Synthese par contexte ─────────────────────────────
 fig, axes = plt.subplots(2, 3, figsize=(16, 9))
-fig.suptitle("Macro 09:50 — Analyse par contexte (full dataset, sans lundi)", fontsize=13, fontweight="bold")
+fig.suptitle("Macro 11:50 — Analyse par contexte (full dataset, sans lundi)", fontsize=13, fontweight="bold")
 COLORS = {"ok": "#4CAF50", "warn": "#FF9800", "bad": "#F44336", "neutral": "#2196F3"}
 
 def color_wr(wr):
@@ -303,7 +305,7 @@ bar_chart(axes[1,2],
     "Type de sortie")
 
 plt.tight_layout()
-p1 = OUT_DIR / "0950_contextes.png"
+p1 = OUT_DIR / "1150_contextes.png"
 plt.savefig(p1, dpi=130, facecolor=fig.get_facecolor())
 plt.close()
 print(f"[chart] {p1}")
@@ -311,7 +313,7 @@ print(f"[chart] {p1}")
 # ── CHART 2 : Heatmap London x Pool ─────────────────────────────
 fig2, ax2 = plt.subplots(1, 2, figsize=(13, 5))
 fig2.patch.set_facecolor("#0d0d1a")
-fig2.suptitle("Macro 09:50 — Heatmap London x Pool", fontsize=12, fontweight="bold", color="white")
+fig2.suptitle("Macro 11:50 — Heatmap London x Pool", fontsize=12, fontweight="bold", color="white")
 
 for i, (metric, title, fmt) in enumerate([
     ("wr", "Win Rate (%)", ".0f"),
@@ -341,7 +343,7 @@ for i, (metric, title, fmt) in enumerate([
     plt.colorbar(im, ax=ax2[i])
 
 plt.tight_layout()
-p2 = OUT_DIR / "0950_heatmap.png"
+p2 = OUT_DIR / "1150_heatmap.png"
 plt.savefig(p2, dpi=130, facecolor=fig2.get_facecolor())
 plt.close()
 print(f"[chart] {p2}")
@@ -349,7 +351,7 @@ print(f"[chart] {p2}")
 # ── CHART 3 : Courbe equity + distribution P&L ───────────────────
 fig3, (ax3a, ax3b) = plt.subplots(1, 2, figsize=(14, 5))
 fig3.patch.set_facecolor("#0d0d1a")
-fig3.suptitle("Macro 09:50 — Equity & Distribution P&L (full dataset)", fontsize=12, fontweight="bold", color="white")
+fig3.suptitle("Macro 11:50 — Equity & Distribution P&L (full dataset)", fontsize=12, fontweight="bold", color="white")
 
 for ax in [ax3a, ax3b]:
     ax.set_facecolor("#1a1a2e")
@@ -386,7 +388,7 @@ ax3b.set_xlabel("P&L (%)", color="white")
 ax3b.legend(fontsize=8, facecolor="#1a1a2e", labelcolor="white")
 
 plt.tight_layout()
-p3 = OUT_DIR / "0950_equity_dist.png"
+p3 = OUT_DIR / "1150_equity_dist.png"
 plt.savefig(p3, dpi=130, facecolor=fig3.get_facecolor())
 plt.close()
 print(f"[chart] {p3}")
@@ -394,7 +396,7 @@ print(f"[chart] {p3}")
 # ── CHART 4 : Performance par annee + mois ───────────────────────
 fig4, (ax4a, ax4b) = plt.subplots(1, 2, figsize=(14, 5))
 fig4.patch.set_facecolor("#0d0d1a")
-fig4.suptitle("Macro 09:50 — Performance temporelle", fontsize=12, fontweight="bold", color="white")
+fig4.suptitle("Macro 11:50 — Performance temporelle", fontsize=12, fontweight="bold", color="white")
 
 for ax in [ax4a, ax4b]:
     ax.set_facecolor("#1a1a2e")
@@ -432,7 +434,7 @@ ax4b.set_title("Par mois calendaire", color="white", fontsize=10)
 ax4b.legend(fontsize=8, facecolor="#1a1a2e", labelcolor="white")
 
 plt.tight_layout()
-p4 = OUT_DIR / "0950_temporel.png"
+p4 = OUT_DIR / "1150_temporel.png"
 plt.savefig(p4, dpi=130, facecolor=fig4.get_facecolor())
 plt.close()
 print(f"[chart] {p4}")

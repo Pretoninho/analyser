@@ -10,7 +10,7 @@ import pytz
 from pathlib import Path
 from collections import defaultdict
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from engine.stats_state import (
     MACROS, encode, decode,

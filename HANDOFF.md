@@ -96,7 +96,7 @@ MACRO_RULES = {
 analyser/
 ├── main.py                    # run_build_qtable() + run_backtest_stats() + _sim_trade_rr()
 ├── sweep.py                   # grid search SL/TP — config principale
-├── config.py                  # chemins, paramètres globaux
+├── config.py                  # chemins, parametres globaux
 ├── engine/
 │   ├── stats_state.py         # N_STATES, MACROS, encode, decode, compute_pool_ctx, build_weekly_levels
 │   └── q_agent.py             # QAgent (save/load pkl, act, update)
@@ -105,10 +105,16 @@ analyser/
 ├── data_binance/              # CSV Binance BTCUSDT 1min (2019-2026)
 ├── db/
 │   └── stats_agent.pkl        # Q-table active (1944 x 3)
-├── analyse_0850.py            # Analyse approfondie macro 08:50 (5 sections)
-├── analyse_macros_silencieux.py  # Analyse des 4 macros silencieuses
-├── analyse_1450.py            # Analyse macro 14:50 (Power Hour)
-└── analyse_silver_bullet.py   # Analyse Silver Bullet 10:00 ET (OR 09:30-10:00)
+└── analysis/                  # Scripts d'analyse standalone (ne pas modifier engine/ sans eux)
+    ├── analyse_0850.py        # Macro 08:50 — globalement negatif, 1 contexte OOS note
+    ├── analyse_0950.py        # Macro 09:50 — analyse complete + charts
+    ├── analyse_1150.py        # Macro 11:50 — analyse complete + charts
+    ├── analyse_1450.py        # Macro 14:50 (Power Hour) — silenciee
+    ├── analyse_macros_silencieux.py  # 4 macros silencieuses
+    ├── analyse_silver_bullet.py      # Silver Bullet 10:00 ET — pas d'edge OOS
+    ├── analyse_judas_swing.py        # Judas Swing London — observation live
+    ├── analyse_london_cascade.py     # London Cascade LOR->SB->LM — observation live
+    └── analyse_cbdr.py               # CBDR 14:00-20:00 ET — observation live
 ```
 
 ---

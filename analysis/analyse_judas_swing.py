@@ -25,7 +25,7 @@ import pytz
 import pandas as pd
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from data.binance import load_binance_1m
 from main import _sim_trade_rr
