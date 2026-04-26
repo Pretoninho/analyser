@@ -238,29 +238,85 @@ Scripts conserves en **observation live** — a re-executer periodiquement au fi
 
 Ne pas modifier, ne pas supprimer.
 
-### P5 — Weekly Profile ICT (transcriptions à venir)
+### P5 — Weekly Profile ICT (classé — pas d'intégration)
 
-Concept abordé par ICT dans son **2017 Core Content Month 07**.
-L'utilisateur va fournir les transcriptions.
+Transcriptions analysées : **ICT Month 07 Lesson 2 (profils hebdomadaires) + Lesson 3 (Market Maker Manipulation Templates)**.
 
-- Comprendre le concept avant de coder quoi que ce soit
-- Évaluer si intégrable dans l'espace d'états existant (1944) ou si ça nécessite une nouvelle dimension
-- Workflow : lire transcription -> analyser -> proposer implémentation -> valider OOS -> intégrer
+**Conclusions :**
 
-### P6 — Transcriptions à analyser (sans toucher au code)
+- Pi* capture déjà l'essence des templates ICT via `pool_ctx` + `sweep_ctx` + `london_ctx` — les PD arrays de rang 1 (liquidity pools) sont déjà encodés.
+- La logique est fractale : ce que Pi* fait en intraday (sweep → expansion vers pool opposé) est exactement ce qu'ICT décrit à l'échelle hebdomadaire (Tuesday extreme → expansion Jeudi/Vendredi).
+- **PD Array Matrix** : non utile — explosion N_STATES (1944×3 min = 5832 états) non compensée par le volume de trades actuel (~45 test trades).
+- **Filtre jour de semaine** (Tuesday/Wednesday = extrême, Jeudi/Vendredi = exécution) : concept testable en standalone (`analyse_weekly_profile.py`), pas encore codé. Les 44% d'EOD exits s'expliquent en partie par des semaines de consolidation non filtrées.
+- **Sur Forex** : les concepts qui échouent sur BTC (CBDR, Judas Swing, London Cascade, Weekly Profiles) deviendraient directement applicables et plus fiables — à réévaluer lors du passage Forex.
 
-Vidéos à lire et comparer avec Pi* pour identifier des concepts exploitables.
+Aucune modification de `engine/` justifiée à ce stade.
 
-**ICT Core Content :**
+### P6 — Transcriptions à analyser (classé — ICT en pause)
 
-- Month 10 (transcription à fournir)
-- Month 11 (transcription à fournir)
-- Month 12 (transcription à fournir)
+Décision : pas de développement ICT supplémentaire sur BTC. Pi* a extrait ce qu'ICT peut offrir sur ce marché. ICT Month 10/11/12 non analysés — déprioritisés.
 
-**Roman Paolucci :**
+**Roman Paolucci — analyses complètes :**
 
-- "How to trade with an Edge" (transcription à fournir)
-- "Profitable vs. Tradable : Why most strategies fail live" (transcription à fournir)
+"How to trade with an Edge" :
+
+- Q-table = espérance conditionnelle non-linéaire (valide, architecture correcte)
+- Problème central : N=13-45 trop petit pour distinguer edge réel de chance (sample path)
+- Diversification EV : une stratégie sur un actif = fragilité structurelle → voir P7
+
+"Profitable vs. Tradable — Why most strategies fail live" :
+
+- Profitable (backtest) != tradable (live). Ce qui compte : stabilité des distributions P&L OOS
+- L'espace d'états de Pi* IS un regime model au sens de Paolucci — architecture validée
+- Finding clé : régime volatilité médiane = distribution la plus stable. Pi* ne filtre pas par vol → piste pour plus tard
+- Stabilité des features (pool_ctx, sweep_ctx) jamais vérifiée explicitement — implicite dans walk-forward
+- Conclusion identique aux deux vidéos : P2 (live) est la condition nécessaire pour qualifier Pi* de "tradable"
+
+**ICT Core Content (déprioritisé) :**
+
+- Month 10, 11, 12 — à analyser uniquement si passage Forex décidé
+
+### P7 — Stratégie SPOT BTC (à développer après P2)
+
+Objectif : second pilier de portefeuille, décorrélé de Pi* (FUTURES intraday), pour diversifier les sources d'EV au sens de Paolucci.
+
+**Concept :**
+
+- Pi* = FUTURES, intraday, micro-structure ICT, horizon minutes
+- SPOT = LONG ou FLAT uniquement, horizon jours/semaines, signaux macro
+
+**Base déjà existante (à récupérer) :**
+
+L'utilisateur a déjà construit un outil de signal z-score composite combinant :
+
+- Futures à terme (open interest, funding rate, basis)
+- Options (put/call ratio, IV term structure, skew)
+- Spot macro : surveillance Whales, on-chain flows (SOPR, MVRV, exchange inflows), Fear & Greed Index
+
+**Architecture cible :**
+
+Appliquer la méthode Pi* à ce signal space :
+
+- Z-score composite → buckets d'états (ex: STRONG_LONG / MILD_LONG / NEUTRAL / FLAT)
+- Q-table empirique : E[return | bucket_z] sur historique journalier
+- Walk-forward 80/20 strict, même seuil OOS > 0.05%
+- Action space réduit : LONG ou FLAT (pas de SHORT en SPOT)
+
+**Avantage N vs Pi* :**
+
+Signal journalier → ~2500 jours d'historique BTC 2019-2026 → N beaucoup plus grand, problème de sample path moins critique.
+
+**Pipeline de données à reconstruire :**
+
+- On-chain : Glassnode ou CryptoQuant (API historique)
+- Options : Deribit (historique IV, put/call)
+- Futures : Binance (funding rate, OI) — déjà en partie disponible
+
+**Prérequis :**
+
+- P2 (Railway live) stabilisé en premier
+- Retrouver/reconstruire le pipeline z-score existant
+- Définir la granularité du signal (journalier ou hebdomadaire)
 
 Objectif : extraction de concepts ICT/edge testables, pas d'implémentation immédiate.
 
