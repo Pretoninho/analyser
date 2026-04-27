@@ -191,6 +191,16 @@ def main():
 
     if dow in SKIP_DAYS:
         print(f"[live] Jour skippé (dow={dow}) -- exit.")
+        mc = month_ctx(now_et.month)
+        dc = day_ctx(dow)
+        msg = (f"**Pi* -- SKIP [09:50]**\n{now_et.strftime('%Y-%m-%d %H:%M ET')}\n"
+               f"Lundi -- pas de trade live.")
+        send_discord(msg)
+        log_csv(today.isoformat(), {
+            "mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc,
+            "lc": -1, "sc": -1, "pc": -1, "state": -1,
+            "action": 0, "q_val": 0.0, "would_trade": False, "flat_reason": "skip_day",
+        })
         sys.exit(0)
 
     print(f"[live] {now_et.strftime('%Y-%m-%d %H:%M')} ET -- calcul signal Pi* 09:50...")

@@ -34,7 +34,7 @@ ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
 
 from pi_config import (
-    SHADOW_MACROS, SL_PCT, RR, EXIT_HM, Q_THRESHOLD,
+    SHADOW_MACROS, LIVE_MACROS, SL_PCT, RR, EXIT_HM, Q_THRESHOLD,
     ALIGNED_ONLY, SKIP_DAYS, MACRO_RULES, FEE, SLIP,
 )
 from engine.stats_state import (
@@ -256,7 +256,8 @@ def process_macro(mac_idx, today_df, daily_ctx, pwh, pwl, agent):
 
 # ── CSV ───────────────────────────────────────────────────────────
 
-CSV_PATH = ROOT / "db" / "shadow_trades.csv"
+CSV_PATH      = ROOT / "db" / "shadow_trades.csv"
+LIVE_CSV_PATH = ROOT / "db" / "live_trades.csv"
 CSV_FIELDS = [
     "date", "mac_idx", "mac_name",
     "mc", "dc", "lc", "sc", "pc", "state",
@@ -266,9 +267,11 @@ CSV_FIELDS = [
 ]
 
 
-def append_csv(date_str, results):
-    write_header = not CSV_PATH.exists()
-    with open(CSV_PATH, "a", newline="", encoding="utf-8") as f:
+def append_csv(date_str, results, path=None):
+    if path is None:
+        path = CSV_PATH
+    write_header = not path.exists()
+    with open(path, "a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
         if write_header:
             writer.writeheader()
@@ -280,39 +283,50 @@ def append_csv(date_str, results):
 
 # ── Discord ───────────────────────────────────────────────────────
 
-def build_discord_message(date_str, results):
+def _format_macro_line(r):
+    mac = r["mac_name"]
+    lc  = LC_LABELS.get(r["lc"], "?")
+    sc  = SC_LABELS.get(r["sc"], "?") if r["sc"] >= 0 else "?"
+    pc  = PC_LABELS.get(r["pc"], "?") if r["pc"] >= 0 else "?"
+    ctx = f"{lc} | {sc} | {pc}"
+    if r["exit_reason"] == "NO_DATA":
+        return f"{mac} | {ctx} -> NO_DATA", False, 0.0, ""
+    if r["flat_reason"]:
+        return f"{mac} | {ctx} -> FLAT ({r['flat_reason']})", False, 0.0, ""
+    direction = "LONG" if r["action"] == 1 else "SHORT"
+    pnl_pct   = r["pnl"] * 100 if r["pnl"] is not None else 0.0
+    sign      = "+" if pnl_pct >= 0 else ""
+    line = (f"{mac} | {ctx} -> {direction} Q={r['q_val']*100:+.3f}%"
+            f" | {r['exit_reason']} {sign}{pnl_pct:.2f}% (N={r['n_candles']})")
+    return line, True, pnl_pct, r["exit_reason"]
+
+
+def build_discord_message(date_str, shadow_results, live_results=None):
     lines = [f"**[SHADOW] Pi* | {date_str}**", ""]
+
+    # Section LIVE observation (jours skippes)
+    if live_results:
+        lines.append("_[LIVE — observation skip_day]_")
+        for r in live_results:
+            line, _, _, _ = _format_macro_line(r)
+            lines.append(line)
+        lines.append("")
 
     n_trades = n_tp = n_sl = n_eod = 0
     pnl_total = 0.0
 
-    for r in results:
-        mac = r["mac_name"]
-        lc  = LC_LABELS.get(r["lc"], "?")
-        sc  = SC_LABELS.get(r["sc"], "?") if r["sc"] >= 0 else "?"
-        pc  = PC_LABELS.get(r["pc"], "?") if r["pc"] >= 0 else "?"
-        ctx = f"{lc} | {sc} | {pc}"
-
-        if r["exit_reason"] == "NO_DATA":
-            lines.append(f"{mac} | {ctx} -> NO_DATA")
-        elif r["flat_reason"]:
-            lines.append(f"{mac} | {ctx} -> FLAT ({r['flat_reason']})")
-        else:
-            direction = "LONG" if r["action"] == 1 else "SHORT"
-            pnl_pct   = r["pnl"] * 100 if r["pnl"] is not None else 0.0
-            sign      = "+" if pnl_pct >= 0 else ""
-            lines.append(
-                f"{mac} | {ctx} -> {direction} Q={r['q_val']*100:+.3f}%"
-                f" | {r['exit_reason']} {sign}{pnl_pct:.2f}% (N={r['n_candles']})"
-            )
+    for r in (shadow_results or []):
+        line, traded, pnl_pct, exit_r = _format_macro_line(r)
+        lines.append(line)
+        if traded:
             n_trades += 1
-            if r["exit_reason"] == "TP":
-                n_tp  += 1
-            elif r["exit_reason"] == "SL":
-                n_sl  += 1
-            elif r["exit_reason"] == "EOD":
-                n_eod += 1
             pnl_total += pnl_pct
+            if exit_r == "TP":
+                n_tp  += 1
+            elif exit_r == "SL":
+                n_sl  += 1
+            elif exit_r == "EOD":
+                n_eod += 1
 
     lines.append("")
     if n_trades > 0:
@@ -344,11 +358,11 @@ def main():
     dow      = now_et.weekday()
     date_str = today.isoformat()
 
-    if dow in SKIP_DAYS:
-        print(f"[shadow] Jour skippe (dow={dow}) -- exit.")
-        sys.exit(0)
+    skip_day = dow in SKIP_DAYS
+    if skip_day:
+        print(f"[shadow] Jour skippe (dow={dow}) -- observation LIVE_MACROS en mode shadow.")
 
-    if not SHADOW_MACROS:
+    if not SHADOW_MACROS and not skip_day:
         print("[shadow] SHADOW_MACROS vide -- exit.")
         sys.exit(0)
 
@@ -380,23 +394,39 @@ def main():
         sys.exit(1)
     agent = QAgent.load(str(model_path))
 
-    # Traitement de chaque macro shadow
-    results = []
-    for mac_idx in sorted(SHADOW_MACROS):
-        r      = process_macro(mac_idx, today_df, daily_ctx, pwh, pwl, agent)
-        status = (
-            r["exit_reason"] if r["would_trade"]
-            else f"FLAT ({r['flat_reason'] or 'no_data'})"
-        )
+    # Macros a traiter : SHADOW toujours + LIVE si jour skippe
+    macros_shadow = sorted(SHADOW_MACROS)
+    macros_live   = sorted(LIVE_MACROS) if skip_day else []
+
+    shadow_results = []
+    live_results   = []
+
+    for mac_idx in macros_shadow:
+        r = process_macro(mac_idx, today_df, daily_ctx, pwh, pwl, agent)
+        status = r["exit_reason"] if r["would_trade"] else f"FLAT ({r['flat_reason'] or 'no_data'})"
         print(f"[shadow] mac={mac_idx} ({MAC_NAMES[mac_idx]}) -> {status}")
-        results.append(r)
+        shadow_results.append(r)
+
+    for mac_idx in macros_live:
+        r = process_macro(mac_idx, today_df, daily_ctx, pwh, pwl, agent)
+        # Jour skippe : le trade n'aurait pas ete pris en live
+        if r["would_trade"]:
+            r["would_trade"] = False
+            r["flat_reason"] = "skip_day"
+        status = f"FLAT ({r['flat_reason'] or 'no_data'})"
+        print(f"[shadow/live-obs] mac={mac_idx} ({MAC_NAMES[mac_idx]}) -> {status}")
+        live_results.append(r)
 
     # Log CSV
-    append_csv(date_str, results)
-    print(f"[shadow] {len(results)} lignes ecrites dans {CSV_PATH}")
+    if shadow_results:
+        append_csv(date_str, shadow_results)
+        print(f"[shadow] {len(shadow_results)} lignes shadow ecrites dans {CSV_PATH}")
+    if live_results:
+        append_csv(date_str, live_results, path=LIVE_CSV_PATH)
+        print(f"[shadow] {len(live_results)} lignes live (skip_day obs) ecrites dans {LIVE_CSV_PATH}")
 
     # Discord
-    msg = build_discord_message(date_str, results)
+    msg = build_discord_message(date_str, shadow_results, live_results)
     send_discord(msg)
     print("[shadow] Message Discord envoye.")
 
