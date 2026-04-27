@@ -7,6 +7,7 @@ Endpoints :
   GET /api/candles/{date}/{mac}    OHLC Binance pour vue detail trade
   GET /api/performance             metriques agregees
   GET /api/qtable                  Q-table etats + valeurs
+    GET /version                     meta runtime/deploiement
 
 Lancement local :
   uvicorn api.app:app --reload --port 8000
@@ -16,6 +17,7 @@ import os
 import sys
 import csv
 import pickle
+import platform
 import requests
 import pytz
 import numpy as np
@@ -465,4 +467,19 @@ def root():
         "status": "ok",
         "health": "/health",
         "docs": "/docs",
+    }
+
+
+@app.get("/version")
+def version():
+    """Expose runtime/build metadata for quick monitoring and debugging."""
+    return {
+        "service": "pi-api",
+        "app_version": app.version,
+        "python_version": platform.python_version(),
+        "environment": os.getenv("RAILWAY_ENVIRONMENT_NAME"),
+        "service_id": os.getenv("RAILWAY_SERVICE_ID"),
+        "deployment_id": os.getenv("RAILWAY_DEPLOYMENT_ID"),
+        "git_commit_sha": os.getenv("RAILWAY_GIT_COMMIT_SHA"),
+        "timestamp": datetime.utcnow().isoformat(),
     }
