@@ -4,6 +4,7 @@ dashboard/app.py — Interface de consultation Pi*.
 Lancement : streamlit run dashboard/app.py
 """
 
+import os
 import sys
 import numpy as np
 import pandas as pd
@@ -1306,6 +1307,29 @@ def main():
             st.metric("Bougies 1min (BTC)", f"{market_count:,}")
         except Exception as e:
             st.error(f"DB inaccessible : {e}")
+        st.divider()
+        st.subheader("Discord")
+        _discord_url = (
+            st.secrets.get("DISCORD_WEBHOOK_URL", "")
+            if hasattr(st, "secrets") else ""
+        ) or os.environ.get("DISCORD_WEBHOOK_URL", "")
+        if _discord_url:
+            st.caption(f"Webhook : ...{_discord_url[-12:]}")
+        else:
+            st.caption("Webhook non configure")
+        if st.button("Tester Discord", use_container_width=True):
+            if not _discord_url:
+                st.error("DISCORD_WEBHOOK_URL non defini.")
+            else:
+                try:
+                    import requests as _req
+                    from datetime import datetime as _dt
+                    _msg = f"Pi* test -- {_dt.utcnow().strftime('%Y-%m-%d %H:%M')} UTC -- connexion OK"
+                    _r = _req.post(_discord_url, json={"content": _msg}, timeout=8)
+                    _r.raise_for_status()
+                    st.success("Message envoye sur Discord.")
+                except Exception as _e:
+                    st.error(f"Echec : {_e}")
 
     with st.spinner("Chargement..."):
         df_1m = load_data()

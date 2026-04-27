@@ -94,27 +94,48 @@ MACRO_RULES = {
 
 ```
 analyser/
+├── pi_config.py               # SOURCE DE VERITE config strategie (SL, RR, LIVE/SHADOW_MACROS, MACRO_RULES)
+├── live_signal.py             # Signal live cron 09:51 ET — ecrit db/live_trades.csv
+├── shadow_signal.py           # Paper trading EOD cron 16:05 ET — ecrit db/shadow_trades.csv
+├── api/
+│   └── app.py                 # FastAPI backend (uvicorn) — endpoints /api/daily /api/trades /api/performance /api/qtable /api/candles
+├── frontend/                  # Next.js dashboard (Railway service separe)
+│   ├── app/
+│   │   ├── page.tsx           # Redirect vers /trades
+│   │   ├── trades/page.tsx    # Historique trades live + shadow
+│   │   ├── trades/[date]/[mac]/page.tsx  # Detail trade + CandleChart TradingView
+│   │   ├── daily/[date]/page.tsx         # Rapport journalier toutes macros
+│   │   ├── performance/page.tsx          # Metriques + courbe P&L cumulee
+│   │   └── qtable/page.tsx              # Q-table etats actifs
+│   ├── components/            # CandleChart, CtxBadges, ExitBadge, Sidebar, StatCard
+│   ├── lib/api.ts             # Fetches vers l'API Python
+│   └── railway.json           # Config Railway service Next.js
+├── railway.toml               # Config Railway service API (uvicorn $PORT)
+├── Procfile                   # web: uvicorn api.app:app --host 0.0.0.0 --port $PORT
+├── requirements-live.txt      # requests, pandas, numpy, pytz, fastapi, uvicorn
+├── db/
+│   ├── stats_agent.pkl        # Q-table active (1944 x 3)
+│   ├── live_trades.csv        # Log trades live (append quotidien)
+│   └── shadow_trades.csv      # Log trades shadow (append quotidien)
 ├── main.py                    # run_build_qtable() + run_backtest_stats() + _sim_trade_rr()
-├── sweep.py                   # grid search SL/TP — config principale
+├── sweep.py                   # grid search SL/TP
 ├── config.py                  # chemins, parametres globaux
 ├── engine/
-│   ├── stats_state.py         # N_STATES, MACROS, encode, decode, compute_pool_ctx, build_weekly_levels
+│   ├── stats_state.py         # N_STATES, MACROS, encode, decode, compute_pool_ctx, compute_daily_context
 │   └── q_agent.py             # QAgent (save/load pkl, act, update)
 ├── data/
 │   └── binance.py             # load_binance_1m(), download_binance_1m()
 ├── data_binance/              # CSV Binance BTCUSDT 1min (2019-2026)
-├── db/
-│   └── stats_agent.pkl        # Q-table active (1944 x 3)
-└── analysis/                  # Scripts d'analyse standalone (ne pas modifier engine/ sans eux)
-    ├── analyse_0850.py        # Macro 08:50 — globalement negatif, 1 contexte OOS note
-    ├── analyse_0950.py        # Macro 09:50 — analyse complete + charts
-    ├── analyse_1150.py        # Macro 11:50 — analyse complete + charts
-    ├── analyse_1450.py        # Macro 14:50 (Power Hour) — silenciee
-    ├── analyse_macros_silencieux.py  # 4 macros silencieuses
-    ├── analyse_silver_bullet.py      # Silver Bullet 10:00 ET — pas d'edge OOS
-    ├── analyse_judas_swing.py        # Judas Swing London — observation live
-    ├── analyse_london_cascade.py     # London Cascade LOR->SB->LM — observation live
-    └── analyse_cbdr.py               # CBDR 14:00-20:00 ET — observation live
+└── analysis/                  # Scripts d'analyse standalone
+    ├── analyse_0850.py
+    ├── analyse_0950.py
+    ├── analyse_1150.py
+    ├── analyse_1450.py
+    ├── analyse_macros_silencieux.py
+    ├── analyse_silver_bullet.py
+    ├── analyse_judas_swing.py
+    ├── analyse_london_cascade.py
+    └── analyse_cbdr.py
 ```
 
 ---
@@ -195,10 +216,38 @@ Dernier run complet valide (2026-04-25, build + backtest stats):
     - Expectancy/trade: +0.2768%
     - Par macro: 09:50*=24 trades, WR 50.0%, total +3.87% | 11:50=21 trades, WR 71.4%, total +8.58%
 
-### P2 — Railway deployment (après stabilisation stratégie)
-- Discord webhook pour signaux live
-- Cron 09:51 ET + 11:51 ET (macros 2 et 4, mais 4 silencée)
-- Mode monitoring : log macros silencieuses avec label ✗ sans trader
+### P2 — Railway deployment (EN PRODUCTION)
+
+Architecture déployée sur Railway — 3 services :
+
+**Service 1 : API Python (racine)**
+- `railway.toml` → `uvicorn api.app:app --host 0.0.0.0 --port $PORT`
+- `requirements-live.txt` : requests, pandas, numpy, pytz, fastapi, uvicorn
+- Endpoints : `/api/daily/{date}`, `/api/trades`, `/api/performance`, `/api/qtable`, `/api/candles/{date}/{mac}`, `/health`
+- Lit `db/live_trades.csv` + `db/shadow_trades.csv`
+
+**Service 2 : Cron live_signal.py**
+- Cron `51 13 * * 1-5` (EDT) / `51 14 * * 1-5` (EST nov-mars)
+- Macro active : mac_idx=2 (09:50 ET)
+- Ecrit dans `db/live_trades.csv`, envoie Discord signal live
+
+**Service 3 : Cron shadow_signal.py**
+- Cron `5 20 * * 1-5` (EDT) / `5 21 * * 1-5` (EST nov-mars)
+- Macros shadow : {1, 3, 5, 6, 7} (toutes les macros silencieuses)
+- Ecrit dans `db/shadow_trades.csv`, envoie resume Discord [SHADOW] EOD
+
+**Service 4 : Frontend Next.js (`frontend/`)**
+- `frontend/railway.json` → build Next.js
+- Pages : `/trades`, `/performance`, `/qtable`, `/daily/{date}`, `/trades/{date}/{mac}`
+- Se connecte a l'API Python via `lib/api.ts`
+
+**Config centralisee : `pi_config.py`**
+- Transferer une macro de SHADOW vers LIVE : retirer de SHADOW_MACROS, ajouter a LIVE_MACROS
+- FEE=0.0005, SLIP=0.0002 inclus dans simulations shadow
+
+**Variables Railway requises :**
+- `DISCORD_WEBHOOK_URL` (tous les services cron)
+- `BINANCE_BASE_URL` (optionnel, defaut https://api.binance.com)
 
 ### P3 — Trailing stop (idée en attente)
 Remplacer SL+TP fixe par : sortie quand P&L non-réalisé baisse de `trailing_delta` depuis son pic.
@@ -275,6 +324,24 @@ Décision : pas de développement ICT supplémentaire sur BTC. Pi* a extrait ce 
 **ICT Core Content (déprioritisé) :**
 
 - Month 10, 11, 12 — à analyser uniquement si passage Forex décidé
+
+### P8 — Dashboard mobile (Streamlit Cloud)
+
+Créer `streamlit_app.py` à la racine : dashboard léger sans dépendance à la base SQLite ni à `engine/`.
+
+**Contenu cible :**
+
+- Prix BTC live + contexte marché (london_ctx, sweep_ctx, pool_ctx) via Binance public API (même logique que `live_signal.py`)
+- Bouton test Discord (déjà dans `dashboard/app.py` sidebar — à porter ici)
+- Déploiement : Streamlit Community Cloud (gratuit, URL fixe, `ton-app.streamlit.app`)
+
+**Dépendances uniquement :** `streamlit`, `requests`, `pandas`, `numpy`, `pytz` → `requirements-streamlit.txt`
+
+**Motivation :** PC éteint le soir → accès mobile impossible avec le dashboard local. Streamlit Cloud reste allumé en permanence.
+
+**Prérequis :** aucun — standalone, à faire indépendamment de P2.
+
+---
 
 ### P7 — Stratégie SPOT BTC (à développer après P2)
 
