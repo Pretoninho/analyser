@@ -456,3 +456,13 @@ def get_qtable(mac_idx: Optional[int] = None):
 @app.get("/health")
 def health():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+
+
+@app.get("/")
+def root():
+    return {
+        "service": "pi-api",
+        "status": "ok",
+        "health": "/health",
+        "docs": "/docs",
+    }
