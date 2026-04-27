@@ -23,20 +23,15 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 
-# ── Config active Pi* ─────────────────────────────────────────────
-SL_PCT       = 0.006
-RR           = 2.5
-SKIP_MACROS  = frozenset({1, 3, 5, 6, 7})
-SKIP_DAYS    = frozenset({0})          # 0 = lundi
-Q_THRESHOLD  = 0.0
-ALIGNED_ONLY = True
-MACRO_RULES  = {(2, 1, 1): frozenset({1}), (2, 0, 1): frozenset()}
+# ── Config active Pi* (source : pi_config.py) ────────────────────
+from pi_config import (
+    SL_PCT, RR, EXIT_HM, Q_THRESHOLD, ALIGNED_ONLY, SKIP_DAYS, MACRO_RULES,
+)
 
-MAC_IDX   = 2
-MAC_START = 590   # 09:50 ET en minutes
-PRE_START = 570   # 09:30 ET
-REF_WINDOW = 240  # 4h lookback pour BSL/SSL
-EXIT_HM   = 960   # 16:00 ET
+MAC_IDX    = 2
+MAC_START  = 590   # 09:50 ET en minutes
+PRE_START  = 570   # 09:30 ET
+REF_WINDOW = 240   # 4h lookback pour BSL/SSL
 
 # Fenetre de tolerance autour de 09:50 ET (±5 min)
 WINDOW_LOW  = 585
@@ -158,6 +153,28 @@ def send_discord(msg: str):
     resp.raise_for_status()
 
 
+# ── CSV log ───────────────────────────────────────────────────────
+
+CSV_PATH   = ROOT / "db" / "live_trades.csv"
+CSV_FIELDS = [
+    "date", "mac_idx", "mac_name",
+    "mc", "dc", "lc", "sc", "pc", "state",
+    "action", "q_val", "would_trade", "flat_reason",
+    "entry_px", "tp_px", "sl_px",
+    "pnl", "exit_reason", "n_candles",
+]
+
+import csv as _csv
+
+def log_csv(date_str: str, row: dict):
+    write_header = not CSV_PATH.exists()
+    with open(CSV_PATH, "a", newline="", encoding="utf-8") as f:
+        writer = _csv.DictWriter(f, fieldnames=CSV_FIELDS)
+        if write_header:
+            writer.writeheader()
+        writer.writerow({"date": date_str, **{k: row.get(k, "") for k in CSV_FIELDS if k != "date"}})
+
+
 # ── Main ──────────────────────────────────────────────────────────
 
 def main():
@@ -230,6 +247,7 @@ def main():
         print("[live] No sweep detecte -- FLAT (aligned_only).")
         msg = build_message(0, "FLAT", 0, 0, 0, lc, 0, sc, 0.0, now_et, "no sweep")
         send_discord(msg)
+        log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": 0, "state": encode(mc, dc, lc, MAC_IDX, sc, 0), "action": 0, "q_val": 0.0, "would_trade": False, "flat_reason": "no_sweep"})
         sys.exit(0)
 
     # Reference BSL/SSL : 4h lookback avant pre-macro (05:30-09:30 ET)
@@ -247,6 +265,7 @@ def main():
         print(f"[live] Macro rule bloquee (mac={MAC_IDX}, lc={lc}, pc={pc}, sc={sc}) -- FLAT.")
         msg = build_message(0, "FLAT", 0, 0, 0, lc, pc, sc, 0.0, now_et, "macro rule")
         send_discord(msg)
+        log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": pc, "state": encode(mc, dc, lc, MAC_IDX, sc, pc), "action": 0, "q_val": 0.0, "would_trade": False, "flat_reason": "macro_rule"})
         sys.exit(0)
 
     state = encode(mc, dc, lc, MAC_IDX, sc, pc)
@@ -265,6 +284,7 @@ def main():
         print(f"[live] FLAT (Q={q_val*100:+.3f}%, action={action}) -- state={state}")
         msg = build_message(0, "FLAT", 0, 0, 0, lc, pc, sc, q_val, now_et, "Q <= threshold")
         send_discord(msg)
+        log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": pc, "state": state, "action": action, "q_val": q_val, "would_trade": False, "flat_reason": "q_flat"})
         sys.exit(0)
 
     direction = "LONG" if action == 1 else "SHORT"
@@ -308,7 +328,10 @@ def main():
         print("[live] TP <= SL apres calcul -- FLAT.")
         msg = build_message(0, "FLAT", 0, 0, 0, lc, pc, sc, q_val, now_et, "TP <= SL")
         send_discord(msg)
+        log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": pc, "state": state, "action": 0, "q_val": q_val, "would_trade": False, "flat_reason": "tp_le_sl"})
         sys.exit(0)
+
+    log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": pc, "state": state, "action": action, "q_val": q_val, "would_trade": True, "flat_reason": "", "entry_px": round(entry_px, 2), "tp_px": round(tp_px, 2), "sl_px": round(sl_px, 2), "pnl": None, "exit_reason": "PENDING", "n_candles": 0})
 
     msg = build_message(action, direction, entry_px, tp_px, sl_px, lc, pc, sc, q_val, now_et)
     send_discord(msg)
