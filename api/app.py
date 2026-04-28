@@ -18,16 +18,19 @@ import sys
 import csv
 import pickle
 import platform
+import subprocess
 import requests
 import pytz
 import numpy as np
 import pandas as pd
+from contextlib import asynccontextmanager
 from datetime import datetime, date
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from apscheduler.schedulers.background import BackgroundScheduler
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
@@ -36,9 +39,9 @@ from engine.stats_state import MACROS, decode
 from engine.q_agent import QAgent
 from pi_config import LIVE_MACROS, SHADOW_MACROS
 
-ET_TZ     = pytz.timezone("America/New_York")
-DB_DIR    = ROOT / "db"
-LIVE_CSV  = DB_DIR / "live_trades.csv"
+ET_TZ      = pytz.timezone("America/New_York")
+DB_DIR     = ROOT / "db"
+LIVE_CSV   = DB_DIR / "live_trades.csv"
 SHADOW_CSV = DB_DIR / "shadow_trades.csv"
 
 MAC_NAMES = {
@@ -50,7 +53,34 @@ PC_LABELS = {0: "NEUTRAL",  1: "BSL_SWEPT", 2: "SSL_SWEPT"}
 SC_LABELS = {0: "NO_SWEEP", 1: "SWEEP_HIGH", 2: "SWEEP_LOW"}
 AC_LABELS = {0: "FLAT",     1: "LONG",       2: "SHORT"}
 
-app = FastAPI(title="Pi* API", version="1.0.0")
+
+# ── Scheduler ─────────────────────────────────────────────────────
+
+def _run(script: str):
+    """Lance un script Python dans un sous-processus (même container → CSV partagés)."""
+    path = str(ROOT / script)
+    result = subprocess.run([sys.executable, path], cwd=str(ROOT))
+    if result.returncode not in (0, None):
+        print(f"[scheduler] {script} exited with code {result.returncode}", flush=True)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler = BackgroundScheduler(timezone=ET_TZ)
+    # live_signal : lun-ven 09:51 ET (DST géré automatiquement)
+    scheduler.add_job(lambda: _run("live_signal.py"),   "cron",
+                      day_of_week="mon-fri", hour=9, minute=51)
+    # shadow_signal : lun-ven 16:05 ET
+    scheduler.add_job(lambda: _run("shadow_signal.py"), "cron",
+                      day_of_week="mon-fri", hour=16, minute=5)
+    scheduler.start()
+    print("[scheduler] APScheduler démarré (live 09:51 ET, shadow 16:05 ET)", flush=True)
+    yield
+    scheduler.shutdown()
+    print("[scheduler] APScheduler arrêté", flush=True)
+
+
+app = FastAPI(title="Pi* API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
