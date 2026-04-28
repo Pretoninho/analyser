@@ -40,6 +40,29 @@ MACRO_RULES = {
     (2, 0, 1): frozenset(),     # 09:50 + NO_RAID + BSL_swept -> bloque
 }
 
+# ── Conditions statistiques validees OOS ──────────────────────────
+# (mac_idx, lc, sc, pc) -> (direction: +1 LONG / -1 SHORT, label)
+# Ces regles court-circuitent la Q-table quand la condition est active.
+#
+#   C1 — NO_RAID x SWEEP_L x SSL_SWEPT -> SHORT
+#        test N=26  WR=50%  avg=+0.300%  total=+7.79%  (3 macros)
+#   C2 — RAID_H  x SWEEP_H x NEUTRAL   -> LONG
+#        test N=17  WR=53%  avg=+0.289%  total=+4.92%  (2 macros)
+#   C3 — RAID_H  x SWEEP_H x BSL_SWEPT -> LONG
+#        test N=4   WR=100% avg=+1.202%  total=+4.81%  (2 macros, N faible)
+CONDITION_RULES = {
+    # C1 — macros 08:50, 10:50, 14:50
+    (1, 0, 2, 2): (-1, "C1"),
+    (3, 0, 2, 2): (-1, "C1"),
+    (7, 0, 2, 2): (-1, "C1"),
+    # C2 — macros 10:50, 12:50
+    (3, 1, 1, 0): (+1, "C2"),
+    (5, 1, 1, 0): (+1, "C2"),
+    # C3 — macros 08:50, 10:50
+    (1, 1, 1, 1): (+1, "C3"),
+    (3, 1, 1, 1): (+1, "C3"),
+}
+
 # ── Simulation ────────────────────────────────────────────────────
 FEE  = 0.0005
 SLIP = 0.0002

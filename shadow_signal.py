@@ -35,7 +35,7 @@ sys.path.insert(0, str(ROOT))
 
 from pi_config import (
     SHADOW_MACROS, LIVE_MACROS, SL_PCT, RR, EXIT_HM, Q_THRESHOLD,
-    ALIGNED_ONLY, SKIP_DAYS, MACRO_RULES, FEE, SLIP,
+    ALIGNED_ONLY, SKIP_DAYS, MACRO_RULES, CONDITION_RULES, FEE, SLIP,
 )
 from engine.stats_state import (
     MACROS, encode, compute_pool_ctx, compute_daily_context,
@@ -155,6 +155,7 @@ def process_macro(mac_idx, today_df, daily_ctx, pwh, pwl, agent):
         "would_trade": False, "flat_reason": "no_data",
         "entry_px": None, "tp_px": None, "sl_px": None,
         "pnl": None, "exit_reason": "NO_DATA", "n_candles": 0,
+        "cond_label": None,
     }
 
     if len(pre_df) < 3 or first_df.empty:
@@ -176,6 +177,11 @@ def process_macro(mac_idx, today_df, daily_ctx, pwh, pwl, agent):
     else:
         sc = 0
 
+    # 1. Aligned-only filter
+    if ALIGNED_ONLY and sc == 0:
+        base.update({"sc": sc, "pc": 0, "flat_reason": "no_sweep"})
+        return base
+
     # Reference BSL/SSL (4h avant pre-macro)
     ref_df = today_df[
         (today_df["hm_et"] >= max(0, ref_start)) & (today_df["hm_et"] < pre_start)
@@ -190,28 +196,34 @@ def process_macro(mac_idx, today_df, daily_ctx, pwh, pwl, agent):
     )
     state = encode(mc, dc, lc, mac_idx, sc, pc)
 
-    action = agent.act(state, training=False)
-    q_val  = float(agent.q_table[state, action]) if action > 0 else 0.0
+    # 2. MACRO_RULES filter
+    allowed_sc = MACRO_RULES.get((mac_idx, lc, pc))
+    if allowed_sc is not None and sc not in allowed_sc:
+        base.update({"sc": sc, "pc": pc, "state": state, "flat_reason": "macro_rule"})
+        return base
+
+    # 3. CONDITION_RULES : court-circuite la Q-table si la condition est active
+    cond = CONDITION_RULES.get((mac_idx, lc, sc, pc))
+    if cond is not None:
+        direction_int, cond_label = cond
+        action = 1 if direction_int == 1 else 2
+        q_val  = 0.0
+    else:
+        # 4. Q-table fallback
+        cond_label = None
+        action = agent.act(state, training=False)
+        q_val  = float(agent.q_table[state, action]) if action > 0 else 0.0
+        if action == 0 or q_val <= Q_THRESHOLD:
+            base.update({"sc": sc, "pc": pc, "state": state,
+                         "action": action, "q_val": q_val, "flat_reason": "q_flat"})
+            return base
 
     entry_px = float(first["open"])
-
     base.update({
         "sc": sc, "pc": pc, "state": state,
         "action": action, "q_val": q_val, "entry_px": entry_px,
-        "flat_reason": "",
+        "flat_reason": "", "cond_label": cond_label,
     })
-
-    # Filtres (meme logique que live)
-    if ALIGNED_ONLY and sc == 0:
-        base["flat_reason"] = "no_sweep"
-        return base
-    allowed_sc = MACRO_RULES.get((mac_idx, lc, pc))
-    if allowed_sc is not None and sc not in allowed_sc:
-        base["flat_reason"] = "macro_rule"
-        return base
-    if action == 0 or q_val <= Q_THRESHOLD:
-        base["flat_reason"] = "q_flat"
-        return base
 
     # Calcul TP/SL (logique target_pool identique au backtest)
     direction  = 1 if action == 1 else -1
@@ -289,16 +301,24 @@ def _format_macro_line(r):
     sc  = SC_LABELS.get(r["sc"], "?") if r["sc"] >= 0 else "?"
     pc  = PC_LABELS.get(r["pc"], "?") if r["pc"] >= 0 else "?"
     ctx = f"{lc} | {sc} | {pc}"
-    if r["exit_reason"] == "NO_DATA":
+
+    # Trade réel : exit_reason renseigné (TP / SL / EOD)
+    if r["exit_reason"] not in ("NO_DATA", "NO_EXIT", ""):
+        direction  = "LONG" if r["action"] == 1 else "SHORT"
+        pnl_pct    = r["pnl"] * 100 if r["pnl"] is not None else 0.0
+        sign       = "+" if pnl_pct >= 0 else ""
+        cond_label = r.get("cond_label")
+        tag = f"[{cond_label}]" if cond_label else f"Q={r['q_val']*100:+.3f}%"
+        line = (f"{mac} | {ctx} -> {direction} {tag}"
+                f" | {r['exit_reason']} {sign}{pnl_pct:.2f}% (N={r['n_candles']})")
+        return line, True, pnl_pct, r["exit_reason"]
+
+    # Pas de données candle
+    if r["flat_reason"] in ("no_data", ""):
         return f"{mac} | {ctx} -> NO_DATA", False, 0.0, ""
-    if r["flat_reason"]:
-        return f"{mac} | {ctx} -> FLAT ({r['flat_reason']})", False, 0.0, ""
-    direction = "LONG" if r["action"] == 1 else "SHORT"
-    pnl_pct   = r["pnl"] * 100 if r["pnl"] is not None else 0.0
-    sign      = "+" if pnl_pct >= 0 else ""
-    line = (f"{mac} | {ctx} -> {direction} Q={r['q_val']*100:+.3f}%"
-            f" | {r['exit_reason']} {sign}{pnl_pct:.2f}% (N={r['n_candles']})")
-    return line, True, pnl_pct, r["exit_reason"]
+
+    # Filtré (no_sweep, macro_rule, q_flat, skip_day, tp_le_sl…)
+    return f"{mac} | {ctx} -> FLAT ({r['flat_reason']})", False, 0.0, ""
 
 
 def build_discord_message(date_str, shadow_results, live_results=None):
@@ -427,6 +447,7 @@ def main():
 
     # Discord
     msg = build_discord_message(date_str, shadow_results, live_results)
+    print("[shadow] Message Discord :\n" + msg, flush=True)
     send_discord(msg)
     print("[shadow] Message Discord envoye.")
 

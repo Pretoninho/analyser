@@ -485,6 +485,45 @@ def get_qtable(mac_idx: Optional[int] = None):
     return {"states": states, "total": len(states)}
 
 
+@app.post("/api/shadow/run")
+def shadow_run():
+    """Declenche shadow_signal.py immediatement (hors schedule). Utile pour test."""
+    script = str(ROOT / "shadow_signal.py")
+    try:
+        result = subprocess.run(
+            [sys.executable, script],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        return {
+            "exit_code": result.returncode,
+            "stdout":    result.stdout[-4000:] if result.stdout else "",
+            "stderr":    result.stderr[-2000:] if result.stderr else "",
+        }
+    except subprocess.TimeoutExpired:
+        raise HTTPException(504, "shadow_signal.py timeout (120s).")
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+@app.post("/api/discord/test")
+def discord_test():
+    """Envoie un message de test sur Discord depuis le container Railway."""
+    webhook_url = os.environ.get("DISCORD_WEBHOOK_URL", "")
+    if not webhook_url:
+        raise HTTPException(503, "DISCORD_WEBHOOK_URL non defini sur ce service.")
+    ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    msg = f"**Pi* API -- test Discord** | {ts} | connexion OK"
+    try:
+        resp = requests.post(webhook_url, json={"content": msg}, timeout=8)
+        resp.raise_for_status()
+    except Exception as e:
+        raise HTTPException(502, f"Echec envoi Discord : {e}")
+    return {"status": "sent", "timestamp": ts}
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
