@@ -13,8 +13,9 @@ import pandas as pd
 from data.deribit  import (
     fetch_ohlcv, fetch_open_interest, fetch_funding_rate,
     fetch_ohlcv_historical, fetch_funding_rate_historical,
+    fetch_options_analytics,
 )
-from data.storage  import save_market_1m, load_market_1m
+from data.storage  import save_derivatives, save_market_1m, load_market_1m
 
 
 def collect_btc_1m(limit: int = 720) -> pd.DataFrame:
@@ -57,6 +58,13 @@ def collect_btc_1m(limit: int = 720) -> pd.DataFrame:
     df = df.reset_index()
 
     save_market_1m("BTC", df)
+
+    # Snapshot options Deribit (IV, skew, PCR, term structure, max pain, GEX)
+    deriv_snapshot = fetch_options_analytics("BTC")
+    if deriv_snapshot:
+        save_derivatives("BTC", deriv_snapshot)
+    else:
+        print("[collector] Snapshot options non disponible.")
 
     df["timestamp"] = pd.to_datetime(df["ts"], unit="s", utc=True)
     _print_summary(df)
@@ -105,6 +113,11 @@ def backfill_btc_1m(days: int = 30) -> pd.DataFrame:
 
     df = df.reset_index()
     save_market_1m("BTC", df)
+
+    # Snapshot ponctuel options au moment du backfill.
+    deriv_snapshot = fetch_options_analytics("BTC")
+    if deriv_snapshot:
+        save_derivatives("BTC", deriv_snapshot)
 
     df["timestamp"] = pd.to_datetime(df["ts"], unit="s", utc=True)
     print(f"[collector] Backfill termine : {len(df):,} bougies inserees en DB.\n")

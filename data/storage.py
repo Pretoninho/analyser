@@ -73,6 +73,8 @@ def init_db():
                 term_6m         REAL,
                 put_call_ratio  REAL,
                 index_price     REAL,
+                max_pain        REAL,
+                gex             REAL,
                 created_at      TEXT    DEFAULT (datetime('now')),
                 UNIQUE (asset, timestamp)
             );
@@ -179,8 +181,9 @@ def init_db():
         """)
     print(f"[storage] results.db initialisée : {RESULTS_DB_PATH}")
 
-    # Migration : ajout des colonnes liquidation pour les DB existantes
+    # Migration : ajout des colonnes sur les DB existantes
     _migrate_indicators()
+    _migrate_derivatives()
 
 
 def _migrate_indicators():
@@ -195,6 +198,20 @@ def _migrate_indicators():
         for col, typ in new_cols:
             try:
                 conn.execute(f"ALTER TABLE indicators ADD COLUMN {col} {typ}")
+            except Exception:
+                pass  # colonne déjà présente
+
+
+def _migrate_derivatives():
+    """Ajoute les colonnes options récentes sur une DB derivatives existante."""
+    new_cols = [
+        ("max_pain", "REAL"),
+        ("gex", "REAL"),
+    ]
+    with get_prices_conn() as conn:
+        for col, typ in new_cols:
+            try:
+                conn.execute(f"ALTER TABLE derivatives ADD COLUMN {col} {typ}")
             except Exception:
                 pass  # colonne déjà présente
 
@@ -281,16 +298,19 @@ def save_derivatives(asset: str, data: dict):
     data doit contenir 'timestamp' (unix seconds) + les champs optionnels.
     INSERT OR REPLACE → un seul snapshot par (asset, timestamp).
     """
+    _migrate_derivatives()
+
     fields = ["iv_atm", "iv_skew_25d", "iv_skew_10d",
               "term_1w", "term_1m", "term_3m", "term_6m",
-              "put_call_ratio", "index_price"]
+              "put_call_ratio", "index_price", "max_pain", "gex"]
 
     with get_prices_conn() as conn:
         conn.execute("""
             INSERT OR REPLACE INTO derivatives
                 (asset, timestamp, iv_atm, iv_skew_25d, iv_skew_10d,
-                 term_1w, term_1m, term_3m, term_6m, put_call_ratio, index_price)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 term_1w, term_1m, term_3m, term_6m, put_call_ratio, index_price,
+                 max_pain, gex)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             asset,
             int(data.get("timestamp", datetime.utcnow().timestamp())),
@@ -303,6 +323,8 @@ def save_derivatives(asset: str, data: dict):
             data.get("term_6m"),
             data.get("put_call_ratio"),
             data.get("index_price"),
+            data.get("max_pain"),
+            data.get("gex"),
         ))
 
     print(f"[storage] Dérivés sauvegardés : {asset}")
@@ -314,7 +336,7 @@ def load_derivatives(asset: str, limit: int = 100) -> pd.DataFrame:
         rows = conn.execute("""
             SELECT timestamp, iv_atm, iv_skew_25d, iv_skew_10d,
                    term_1w, term_1m, term_3m, term_6m,
-                   put_call_ratio, index_price
+                   put_call_ratio, index_price, max_pain, gex
             FROM derivatives
             WHERE asset = ?
             ORDER BY timestamp DESC
@@ -327,7 +349,7 @@ def load_derivatives(asset: str, limit: int = 100) -> pd.DataFrame:
     df = pd.DataFrame(rows, columns=[
         "timestamp", "iv_atm", "iv_skew_25d", "iv_skew_10d",
         "term_1w", "term_1m", "term_3m", "term_6m",
-        "put_call_ratio", "index_price"
+        "put_call_ratio", "index_price", "max_pain", "gex"
     ])
     df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s", utc=True)
     df = df.sort_values("timestamp").reset_index(drop=True)

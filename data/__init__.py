@@ -1,6 +1,7 @@
 from .deribit  import (
     fetch_ohlcv, fetch_open_interest, fetch_funding_rate,
     fetch_ohlcv_historical, fetch_funding_rate_historical,
+    fetch_options_analytics,
 )
 from .storage import (
     init_db,
