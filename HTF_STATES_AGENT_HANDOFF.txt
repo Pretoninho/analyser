@@ -505,3 +505,120 @@ CHECKLIST D APPROBATION UTILISATEUR (AVANT TOUT CODE)
 3) Valider les criteres N minimum
 4) Valider la definition TREND/CHOP et BREAK
 5) Valider le schema de fusion final
+
+REGLE D ENTREE DANS LA FUTURE Q-TABLE HTF
+Objectif:
+- Un etat ou une combinaison d etats ne doit pas entrer dans la Q-Table HTF uniquement parce que son win rate est eleve.
+- L entree doit dependre d un filtre multi-criteres qui evite les faux positifs a faible echantillon.
+
+Metriques minimales a controler:
+- N_trades: nombre de trades observes
+- WinRate: pourcentage de trades gagnants
+- Wilson_LB: borne basse 95% du win rate
+- AvgTrade: rendement moyen par trade apres couts
+- TotalReturn: rendement cumule
+- MaxDD: drawdown maximal
+- Stabilite: repetition du resultat sur sous-periodes
+
+Regle de base:
+- Un etat n entre dans la Q-Table HTF que si:
+   - il atteint le seuil minimal de taille d echantillon
+   - son esperance par trade est positive
+   - son rendement total est positif
+   - son drawdown reste dans la limite definie
+   - sa stabilite temporelle depasse le minimum requis
+
+Score secondaire conseille pour classer les etats admissibles:
+- 35% Wilson_LB
+- 20% AvgTrade
+- 15% WinRate
+- 15% TotalReturn
+- 15% Stabilite
+
+PROFIL 1 - STRICT
+- Usage:
+   - version production prudente
+   - Q-Table tres selective
+- Seuils:
+   - N_trades >= 40
+   - WinRate >= 58%
+   - Wilson_LB >= 50%
+   - AvgTrade >= +0.25%
+   - TotalReturn >= +5.0%
+   - MaxDD >= -12%
+   - Stabilite >= 70% des sous-periodes positives
+- Lecture:
+   - peu d etats retenus, mais mieux verifies
+
+PROFIL 2 - EQUILIBRE
+- Usage:
+   - premiere version exploitable de la Q-Table HTF
+   - compromis entre qualite et couverture
+- Seuils:
+   - N_trades >= 20
+   - WinRate >= 54%
+   - Wilson_LB >= 45%
+   - AvgTrade >= +0.15%
+   - TotalReturn >= +2.5%
+   - MaxDD >= -15%
+   - Stabilite >= 60% des sous-periodes positives
+- Lecture:
+   - profil recommande pour la premiere construction HTF
+
+PROFIL 3 - AGRESSIF
+- Usage:
+   - laboratoire / exploration
+   - historique encore limite
+- Seuils:
+   - N_trades >= 12
+   - WinRate >= 50%
+   - Wilson_LB >= 35%
+   - AvgTrade >= +0.10%
+   - TotalReturn >= +1.0%
+   - MaxDD >= -18%
+   - Stabilite >= 55% des sous-periodes positives
+- Lecture:
+   - permet de garder des etats jeunes mais encore fragiles
+
+Recommandation actuelle:
+- Au vu du backtest HTF proxy actuel:
+   - le profil STRICT est probablement trop exigeant
+   - le profil AGRESSIF est utile pour l exploration
+   - le profil EQUILIBRE est la meilleure base pour la premiere Q-Table HTF
+
+Statuts conseilles:
+- ROBUSTE:
+   - respecte tous les seuils du profil choisi
+- PROVISOIRE:
+   - respecte seulement les seuils agressifs
+- EXCLU:
+   - AvgTrade <= 0
+   - ou TotalReturn <= 0
+   - ou MaxDD trop profond
+   - ou stabilite insuffisante
+
+Regle d utilisation dans la Q-Table:
+- Etat ROBUSTE:
+   - poids complet dans la Q-Table
+- Etat PROVISOIRE:
+   - poids reduit
+   - taille de position reduite
+   - surveillance prioritaire lors des mises a jour
+- Etat EXCLU:
+   - aucun apprentissage ni priorite de signal
+
+Note d implementation future:
+- La Q-Table HTF ne devra pas stocker seulement une valeur unique.
+- Elle devra idealement stocker, pour chaque etat:
+   - N_trades
+   - WinRate
+   - Wilson_LB
+   - AvgTrade
+   - TotalReturn
+   - MaxDD
+   - Stabilite
+   - Statut final (ROBUSTE / PROVISOIRE / EXCLU)
+
+Decision recommandee pour la suite:
+- Construire la premiere Q-Table HTF avec le profil EQUILIBRE
+- Garder le profil AGRESSIF comme mode recherche uniquement

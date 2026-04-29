@@ -2,6 +2,13 @@
 
 > Généré le 2026-04-25. À lire en entier avant de toucher au code.
 
+Note procedure HTF complete:
+- Historique complet des actions HTF disponible dans [PROCEDURE_HTF_COMPLETE.md](PROCEDURE_HTF_COMPLETE.md)
+
+Priorite prochaine session (actee le 2026-04-29):
+- Frequence de signaux jugee trop faible (~3 trades/an) -> retravail de la selection.
+- Reorganiser les fiches pour distinguer clairement les contenus Pi* et HFT.
+
 ---
 
 ## 1. Vue d'ensemble du projet
