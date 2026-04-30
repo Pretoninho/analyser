@@ -65,6 +65,13 @@ def _run(script: str):
         print(f"[scheduler] {script} exited with code {result.returncode}", flush=True)
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _get_deribit_webhook() -> str:
     return os.environ.get("DISCORD_WEBHOOK_DERIBIT_URL", "") or os.environ.get("DISCORD_WEBHOOK_URL", "")
 
@@ -100,11 +107,44 @@ async def lifespan(app: FastAPI):
     # shadow_signal : lun-ven 16:05 ET
     scheduler.add_job(lambda: _run("shadow_signal.py"), "cron",
                       day_of_week="mon-fri", hour=16, minute=5)
-    # deribit futures signal : toutes les 4h (24/7)
-    scheduler.add_job(lambda: _notify_deribit_signal_job("1h", 90), "cron",
-                      hour="*/4", minute=2)
+
+    deribit_enabled = _env_bool("DERIBIT_NOTIFY_ENABLED", True)
+    deribit_mode = os.environ.get("DERIBIT_NOTIFY_MODE", "every_4h").strip().lower()
+    deribit_timeframe = os.environ.get("DERIBIT_NOTIFY_TIMEFRAME", "1h").strip()
+    deribit_days = int(os.environ.get("DERIBIT_NOTIFY_DAYS", "90"))
+    deribit_minute = int(os.environ.get("DERIBIT_NOTIFY_MINUTE", "2"))
+
+    if deribit_enabled:
+        if deribit_mode == "hourly_us":
+            scheduler.add_job(
+                lambda: _notify_deribit_signal_job(deribit_timeframe, deribit_days),
+                "cron",
+                day_of_week="mon-fri",
+                hour="8-17",
+                minute=deribit_minute,
+            )
+        elif deribit_mode == "hourly":
+            scheduler.add_job(
+                lambda: _notify_deribit_signal_job(deribit_timeframe, deribit_days),
+                "cron",
+                hour="*",
+                minute=deribit_minute,
+            )
+        else:
+            # Mode par défaut: toutes les 4h, 24/7
+            scheduler.add_job(
+                lambda: _notify_deribit_signal_job(deribit_timeframe, deribit_days),
+                "cron",
+                hour="*/4",
+                minute=deribit_minute,
+            )
+
     scheduler.start()
-    print("[scheduler] APScheduler demarre (live 09:51 ET, shadow 16:05 ET, deribit 4h)", flush=True)
+    print(
+        "[scheduler] APScheduler demarre "
+        f"(live 09:51 ET, shadow 16:05 ET, deribit_enabled={deribit_enabled}, deribit_mode={deribit_mode})",
+        flush=True,
+    )
     yield
     scheduler.shutdown()
     print("[scheduler] APScheduler arrêté", flush=True)
