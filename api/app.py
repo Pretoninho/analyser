@@ -16,6 +16,7 @@ Lancement local :
 import os
 import sys
 import csv
+import time
 import pickle
 import platform
 import subprocess
@@ -64,6 +65,32 @@ def _run(script: str):
         print(f"[scheduler] {script} exited with code {result.returncode}", flush=True)
 
 
+def _get_deribit_webhook() -> str:
+    return os.environ.get("DISCORD_WEBHOOK_DERIBIT_URL", "") or os.environ.get("DISCORD_WEBHOOK_URL", "")
+
+
+def _notify_deribit_signal_job(timeframe: str = "1h", days: int = 90) -> None:
+    webhook_url = _get_deribit_webhook()
+    if not webhook_url:
+        print("[scheduler] Deribit notify skipped (no webhook configured)", flush=True)
+        return
+
+    try:
+        from analysis.deribit_futures.signal import SignalConfig, build_deribit_signal, format_discord_signal
+
+        cfg = SignalConfig(asset="BTC", timeframe=timeframe, days=days)
+        signal = build_deribit_signal(cfg)
+        msg = format_discord_signal(signal)
+        resp = requests.post(webhook_url, json={"content": msg}, timeout=10)
+        resp.raise_for_status()
+        print(
+            f"[scheduler] Deribit signal sent ({signal.get('signal', {}).get('action', 'NA')}, {timeframe}, {days}d)",
+            flush=True,
+        )
+    except Exception as e:
+        print(f"[scheduler] Deribit notify failed: {e}", flush=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler(timezone=ET_TZ)
@@ -73,8 +100,11 @@ async def lifespan(app: FastAPI):
     # shadow_signal : lun-ven 16:05 ET
     scheduler.add_job(lambda: _run("shadow_signal.py"), "cron",
                       day_of_week="mon-fri", hour=16, minute=5)
+    # deribit futures signal : toutes les 4h (24/7)
+    scheduler.add_job(lambda: _notify_deribit_signal_job("1h", 90), "cron",
+                      hour="*/4", minute=2)
     scheduler.start()
-    print("[scheduler] APScheduler démarré (live 09:51 ET, shadow 16:05 ET)", flush=True)
+    print("[scheduler] APScheduler demarre (live 09:51 ET, shadow 16:05 ET, deribit 4h)", flush=True)
     yield
     scheduler.shutdown()
     print("[scheduler] APScheduler arrêté", flush=True)
@@ -529,6 +559,221 @@ def live_run():
         raise HTTPException(504, "live_signal.py timeout (120s).")
     except Exception as e:
         raise HTTPException(500, str(e))
+
+
+# ── Deribit futures edges ─────────────────────────────────────────────────────
+
+_deribit_cache: dict = {}
+_DERIBIT_CACHE_TTL = 900  # secondes
+
+
+def _cache_get(key: str):
+    entry = _deribit_cache.get(key)
+    if entry is None:
+        return None
+    ts, value = entry
+    if time.time() - ts > _DERIBIT_CACHE_TTL:
+        return None
+    return value
+
+
+def _cache_set(key: str, value) -> None:
+    _deribit_cache[key] = (time.time(), value)
+
+
+def _safe_api(v):
+    try:
+        f = float(v)
+        return round(f, 4) if np.isfinite(f) else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _clean_json_record(obj: dict) -> dict:
+    cleaned = {}
+    for k, v in obj.items():
+        if isinstance(v, float) and not np.isfinite(v):
+            cleaned[k] = None
+        else:
+            cleaned[k] = v
+    return cleaned
+
+
+@app.get("/api/deribit/edges")
+def get_deribit_edges(
+    timeframe: str = Query("1h", description="Timeframe: 1m, 15m, 1h, 4h, 1d"),
+    days: int = Query(14, description="Nombre de jours d'historique a charger"),
+):
+    """
+    Snapshot des scores d'edges Deribit sur la derniere barre.
+    Renvoie les 7 edges (funding, carry, options...) + snapshot mark/OI/funding/options.
+    Cache TTL = 15 min.
+    """
+    cache_key = f"edges_{timeframe}_{days}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        from analysis.deribit_futures.features import EdgeBuildConfig, build_deribit_edge_frame
+        cfg = EdgeBuildConfig(asset="BTC", timeframe=timeframe, days=days)
+        df, context = build_deribit_edge_frame(cfg)
+    except Exception as e:
+        raise HTTPException(502, f"Erreur Deribit fetch: {e}")
+
+    latest = df.iloc[-1]
+    edge_cols = [
+        "edge_funding_reversion", "edge_carry_momentum", "edge_carry_stress",
+        "edge_mark_dislocation", "edge_options_vol_premium",
+        "edge_skew_panic", "edge_term_structure_kink", "edge_total",
+    ]
+    edges = {col: _safe_api(latest.get(col)) for col in edge_cols if col in latest.index}
+
+    snapshot = context.get("snapshot", {})
+    options = context.get("options_snapshot", {})
+
+    result = {
+        "asset": context["asset"],
+        "timeframe": context["timeframe"],
+        "latest_ts": latest["timestamp"].isoformat() if pd.notna(latest.get("timestamp")) else None,
+        "close": _safe_api(latest.get("close")),
+        "funding_annualized": _safe_api(latest.get("funding_annualized")),
+        "realized_vol_annual": _safe_api(latest.get("realized_vol_annual")),
+        "edges": edges,
+        "snapshot": {
+            "mark_price": _safe_api(snapshot.get("mark_price")),
+            "index_price": _safe_api(snapshot.get("index_price")),
+            "open_interest": _safe_api(snapshot.get("open_interest")),
+            "current_funding": _safe_api(snapshot.get("current_funding")),
+            "funding_8h": _safe_api(snapshot.get("funding_8h")),
+        },
+        "options": {
+            "iv_atm": _safe_api(options.get("iv_atm")),
+            "iv_skew_25d": _safe_api(options.get("iv_skew_25d")),
+            "put_call_ratio": _safe_api(options.get("put_call_ratio")),
+            "max_pain": _safe_api(options.get("max_pain")),
+            "term_1w": _safe_api(options.get("term_1w")),
+            "term_1m": _safe_api(options.get("term_1m")),
+            "term_3m": _safe_api(options.get("term_3m")),
+            "gex": _safe_api(options.get("gex")),
+        },
+    }
+    _cache_set(cache_key, result)
+    return result
+
+
+@app.get("/api/deribit/backtest")
+def get_deribit_backtest(
+    timeframe: str = Query("1h", description="Timeframe: 1m, 15m, 1h, 4h, 1d"),
+    days: int = Query(90, description="Nombre de jours d'historique pour le backtest"),
+    threshold: float = Query(0.05, description="Seuil de score pour activer un signal"),
+):
+    """
+    Hit ratio par edge signal Deribit a +4h et +24h.
+    Retourne pour chaque edge : n_signals, hit_ratio, avg_ret_active, avg_ret_baseline, corr, lift.
+    Cache TTL = 15 min.
+    """
+    cache_key = f"bt_{timeframe}_{days}_{threshold}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        from analysis.deribit_futures.backtest import BacktestConfig, run_edge_backtest
+        cfg = BacktestConfig(asset="BTC", timeframe=timeframe, days=days, threshold=threshold)
+        results_df, context = run_edge_backtest(cfg)
+    except Exception as e:
+        raise HTTPException(502, f"Erreur backtest Deribit: {e}")
+
+    records = [_clean_json_record(row) for row in results_df.to_dict(orient="records")]
+
+    result = {
+        "asset": context["asset"],
+        "timeframe": context["timeframe"],
+        "days": days,
+        "threshold": threshold,
+        "total_bars": context.get("bars"),
+        "results": records,
+    }
+    _cache_set(cache_key, result)
+    return result
+
+
+@app.get("/api/deribit/signal")
+def get_deribit_signal(
+    timeframe: str = Query("1h", description="Timeframe: 1m, 15m, 1h, 4h, 1d"),
+    days: int = Query(90, description="Nombre de jours d'historique pour le signal"),
+):
+    """
+    Signal actionnable Deribit (LONG/SHORT/FLAT/WATCH) base sur tous les edges.
+    Retourne action, confiance, horizon suggere et principaux drivers.
+    Cache TTL = 15 min.
+    """
+    cache_key = f"signal_{timeframe}_{days}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        from analysis.deribit_futures.signal import SignalConfig, build_deribit_signal
+        cfg = SignalConfig(asset="BTC", timeframe=timeframe, days=days)
+        signal = build_deribit_signal(cfg)
+    except Exception as e:
+        raise HTTPException(502, f"Erreur signal Deribit: {e}")
+
+    signal_clean = _clean_json_record(signal)
+    _cache_set(cache_key, signal_clean)
+    return signal_clean
+
+
+def _send_deribit_signal_notification(timeframe: str, days: int) -> dict:
+    webhook_url = _get_deribit_webhook()
+    if not webhook_url:
+        raise HTTPException(503, "DISCORD_WEBHOOK_DERIBIT_URL (ou DISCORD_WEBHOOK_URL) non defini.")
+
+    try:
+        from analysis.deribit_futures.signal import SignalConfig, build_deribit_signal, format_discord_signal
+        cfg = SignalConfig(asset="BTC", timeframe=timeframe, days=days)
+        signal = build_deribit_signal(cfg)
+        msg = format_discord_signal(signal)
+        resp = requests.post(webhook_url, json={"content": msg}, timeout=10)
+        resp.raise_for_status()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(502, f"Echec notification Deribit: {e}")
+
+    return {
+        "status": "sent",
+        "timeframe": timeframe,
+        "days": days,
+        "action": signal.get("signal", {}).get("action"),
+        "confidence": signal.get("signal", {}).get("confidence"),
+        "contract": signal.get("signal", {}).get("contract"),
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+
+@app.post("/api/deribit/futures/notify")
+def notify_deribit_futures_signal(
+    timeframe: str = Query("1h", description="Timeframe: 1m, 15m, 1h, 4h, 1d"),
+    days: int = Query(90, description="Nombre de jours d'historique pour le signal"),
+):
+    """
+    Endpoint dedie aux notifications futures a terme Deribit.
+    """
+    return _send_deribit_signal_notification(timeframe=timeframe, days=days)
+
+
+@app.post("/api/deribit/notify")
+def notify_deribit_signal(
+    timeframe: str = Query("1h", description="Timeframe: 1m, 15m, 1h, 4h, 1d"),
+    days: int = Query(90, description="Nombre de jours d'historique pour le signal"),
+):
+    """
+    Alias historique vers l'endpoint dedie futures.
+    """
+    return _send_deribit_signal_notification(timeframe=timeframe, days=days)
 
 
 @app.post("/api/discord/test")

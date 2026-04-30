@@ -79,3 +79,83 @@ export async function runLiveSignal() {
 export async function runShadowSignal() {
   return postRun("/api/shadow/run")
 }
+
+export type DeribitSignalResponse = {
+  asset: string
+  timeframe: string
+  days: number
+  latest_ts: string | null
+  close: number
+  funding_annualized: number
+  realized_vol_annual: number
+  signal: {
+    action: "LONG" | "SHORT" | "FLAT" | "WATCH"
+    horizon: string
+    confidence: number
+    net_score: number
+    long_score: number
+    short_score: number
+    edge_total: number
+    contract?: {
+      instrument: string
+      tenor: string
+      why: string
+    }
+  }
+  edges: Record<string, number>
+  drivers: Array<{ name: string; score: number }>
+  snapshot: Record<string, unknown>
+  options: Record<string, unknown>
+}
+
+export type DeribitBacktestResponse = {
+  asset: string
+  timeframe: string
+  days: number
+  threshold: number
+  total_bars: number
+  results: Array<{
+    edge: string
+    horizon_h: number
+    n_signals: number
+    hit_ratio: number | null
+    avg_ret_active: number | null
+    avg_ret_baseline: number | null
+    corr: number | null
+    lift: number | null
+    note: string
+  }>
+}
+
+export async function fetchDeribitSignal(timeframe = "1h", days = 90) {
+  const q = new URLSearchParams({ timeframe, days: String(days) })
+  const res = await fetch(apiUrl(`/api/deribit/signal?${q.toString()}`), { cache: "no-store" })
+  if (!res.ok) throw new Error(`deribit/signal: ${res.status}`)
+  return res.json() as Promise<DeribitSignalResponse>
+}
+
+export async function fetchDeribitBacktest(timeframe = "1h", days = 90, threshold = 0.05) {
+  const q = new URLSearchParams({ timeframe, days: String(days), threshold: String(threshold) })
+  const res = await fetch(apiUrl(`/api/deribit/backtest?${q.toString()}`), { cache: "no-store" })
+  if (!res.ok) throw new Error(`deribit/backtest: ${res.status}`)
+  return res.json() as Promise<DeribitBacktestResponse>
+}
+
+export async function notifyDeribitSignal(timeframe = "1h", days = 90) {
+  const q = new URLSearchParams({ timeframe, days: String(days) })
+  const res = await fetch(apiUrl(`/api/deribit/futures/notify?${q.toString()}`), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+    cache: "no-store",
+  })
+  if (!res.ok) throw new Error(`deribit/notify: ${res.status}`)
+  return res.json() as Promise<{
+    status: string
+    timeframe: string
+    days: number
+    action: string
+    confidence: number
+    timestamp: string
+  }>
+}

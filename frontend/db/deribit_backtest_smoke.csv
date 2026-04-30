@@ -1,0 +1,15 @@
+edge,horizon_h,n_signals,hit_ratio,avg_ret_active,avg_ret_baseline,corr,lift,note
+edge_funding_reversion,4,0,,,,-0.0383,,insufficient_signals
+edge_carry_momentum,4,8,0.375,3e-06,-0.000104,-0.0214,-0.027,ok
+edge_carry_stress,4,14,0.0,-0.003366,0.000104,-0.0648,-32.453,ok
+edge_mark_dislocation,4,0,,,,,,insufficient_signals
+edge_options_vol_premium,4,59,0.5085,0.00583,0.00511,0.2277,1.141,ok
+edge_skew_panic,4,116,0.5603,-0.000482,-0.000482,,1.0,ok
+edge_term_structure_kink,4,0,,,,,,insufficient_signals
+edge_funding_reversion,24,0,,,,-0.0899,,insufficient_signals
+edge_carry_momentum,24,8,0.375,-0.006223,-0.002162,0.3123,2.878,ok
+edge_carry_stress,24,3,,,,-0.075,,insufficient_signals
+edge_mark_dislocation,24,0,,,,,,insufficient_signals
+edge_options_vol_premium,24,59,0.5763,0.012735,0.011669,0.3154,1.091,ok
+edge_skew_panic,24,96,0.2708,-0.005854,-0.005854,,1.0,ok
+edge_term_structure_kink,24,0,,,,,,insufficient_signals
