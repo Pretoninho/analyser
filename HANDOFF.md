@@ -1,6 +1,6 @@
 # Pi* — Fichier de passation pour agent IA
 
-> Généré le 2026-04-25. À lire en entier avant de toucher au code.
+> Mis à jour le 2026-04-30. À lire en entier avant de toucher au code.
 
 > **Fichier HTF separé : [HANDOFF_HTF.md](HANDOFF_HTF.md)**
 
@@ -128,7 +128,7 @@ analyser/
 ├── data/
 │   └── binance.py             # load_binance_1m(), download_binance_1m()
 ├── data_binance/              # CSV Binance BTCUSDT 1min (2019-2026)
-└── analysis/                  # Scripts d'analyse standalone
+├── analysis/                  # Scripts d'analyse standalone
     ├── analyse_0850.py
     ├── analyse_0950.py
     ├── analyse_1150.py
@@ -137,7 +137,15 @@ analyser/
     ├── analyse_silver_bullet.py
     ├── analyse_judas_swing.py
     ├── analyse_london_cascade.py
-    └── analyse_cbdr.py
+    ├── analyse_cbdr.py
+    ├── run_deribit_futures.py     # CLI edge frame -> db/deribit_futures_edges.csv
+    ├── run_deribit_backtest.py    # CLI backtest -> db/deribit_backtest.csv
+    ├── run_deribit_signal.py      # CLI signal + optionnel --notify Discord
+    └── deribit_futures/           # Package signal Deribit (voir section 12)
+        ├── __init__.py
+        ├── features.py            # build_deribit_edge_frame (7 edges)
+        ├── backtest.py            # hit ratio par edge (horizons +4h/+24h)
+        └── signal.py              # build_deribit_signal + format_discord_signal
 ```
 
 ---
@@ -224,8 +232,13 @@ Architecture déployée sur Railway — 3 services :
 
 **Service 1 : API Python (racine)**
 - `railway.toml` → `uvicorn api.app:app --host 0.0.0.0 --port $PORT`
-- `requirements-live.txt` : requests, pandas, numpy, pytz, fastapi, uvicorn
-- Endpoints : `/api/daily/{date}`, `/api/trades`, `/api/performance`, `/api/qtable`, `/api/candles/{date}/{mac}`, `/health`
+- `requirements-live.txt` : requests, pandas, numpy, pytz, fastapi, uvicorn, apscheduler
+- Endpoints Pi* : `/api/daily/{date}`, `/api/trades`, `/api/performance`, `/api/qtable`, `/api/candles/{date}/{mac}`, `/health`
+- Endpoints Deribit (voir section 12) :
+  - `GET /api/deribit/edges?timeframe=1h&days=14` — snapshot 7 edge scores + mark/OI/options
+  - `GET /api/deribit/backtest?timeframe=1h&days=90&threshold=0.05` — hit ratio par edge (cache 15 min)
+  - `GET /api/deribit/signal?timeframe=1h&days=90` — signal actionnable LONG/SHORT/FLAT + tenor (cache 15 min)
+  - `POST /api/deribit/futures/notify?timeframe=1h&days=90` — envoie signal vers Discord webhook dédié
 - Lit `db/live_trades.csv` + `db/shadow_trades.csv`
 
 **Service 2 : Cron live_signal.py**
@@ -240,15 +253,28 @@ Architecture déployée sur Railway — 3 services :
 
 **Service 4 : Frontend Next.js (`frontend/`)**
 - `frontend/railway.json` → build Next.js
-- Pages : `/trades`, `/performance`, `/qtable`, `/daily/{date}`, `/trades/{date}/{mac}`
+- Pages : `/trades`, `/performance`, `/qtable`, `/daily/{date}`, `/trades/{date}/{mac}`, `/deribit`
+- `/deribit` : signal Deribit live (action/confiance/horizon), tenor/contract, 7 edge scores, drivers, snapshot options, bouton "Notifier Discord"
 - Se connecte a l'API Python via `lib/api.ts`
+
+**Scheduler APScheduler (dans api/app.py) :**
+- live_signal.py : lun-ven 09:51 ET
+- shadow_signal.py : lun-ven 16:05 ET
+- Notifications Deribit : configurable via variables d'environnement Railway :
+  - `DERIBIT_NOTIFY_ENABLED` (default: "true")
+  - `DERIBIT_NOTIFY_MODE` : "every_4h" | "hourly_us" | "hourly" (default: "every_4h")
+  - `DERIBIT_NOTIFY_TIMEFRAME` (default: "1h")
+  - `DERIBIT_NOTIFY_DAYS` (default: "90")
+  - `DERIBIT_NOTIFY_MINUTE` (default: "2")
+  - `DISCORD_WEBHOOK_DERIBIT_URL` : webhook Discord dédié futures (fallback sur DISCORD_WEBHOOK_URL)
 
 **Config centralisee : `pi_config.py`**
 - Transferer une macro de SHADOW vers LIVE : retirer de SHADOW_MACROS, ajouter a LIVE_MACROS
 - FEE=0.0005, SLIP=0.0002 inclus dans simulations shadow
 
 **Variables Railway requises :**
-- `DISCORD_WEBHOOK_URL` (tous les services cron)
+- `DISCORD_WEBHOOK_URL` (tous les services cron + fallback Deribit)
+- `DISCORD_WEBHOOK_DERIBIT_URL` (optionnel — webhook dédié futures, recommandé)
 - `BINANCE_BASE_URL` (optionnel, defaut https://api.binance.com)
 
 ### P3 — Trailing stop (idée en attente)
@@ -327,7 +353,7 @@ Décision : pas de développement ICT supplémentaire sur BTC. Pi* a extrait ce 
 
 - Month 10, 11, 12 — à analyser uniquement si passage Forex décidé
 
-### P8 — Dashboard mobile (Streamlit Cloud)
+### P9 — Dashboard mobile (Streamlit Cloud)
 
 Créer `streamlit_app.py` à la racine : dashboard léger sans dépendance à la base SQLite ni à `engine/`.
 
@@ -345,7 +371,56 @@ Créer `streamlit_app.py` à la racine : dashboard léger sans dépendance à la
 
 ---
 
-### P7 — Stratégie SPOT BTC (à développer après P2)
+### P7 — Deribit Futures Signal (EN PRODUCTION — 2026-04-30)
+
+Module complet déployé sur Railway. Statut : **tests Railway 100% pass**.
+
+**Architecture `analysis/deribit_futures/` :**
+
+7 edges calculés sur OHLCV 1h + funding historique + options analytics Deribit :
+
+| Edge | Type | Logique |
+|------|------|---------|
+| `edge_funding_reversion` | directionnel | funding extrême → mean reversion |
+| `edge_carry_momentum` | directionnel | funding positif fort → suivi tendance |
+| `edge_carry_stress` | directionnel | funding très négatif → squeeze haussier |
+| `edge_mark_dislocation` | directionnel | basis mark/index > 1.5σ → convergence |
+| `edge_options_vol_premium` | non-directionnel | IV réalisée < IV implicite → premium vendeur |
+| `edge_skew_panic` | directionnel | put skew extrême → retournement haussier |
+| `edge_term_structure_kink` | non-directionnel | anomalie term structure IV |
+
+**Signal (`build_deribit_signal`) :**
+- Output : `action` (LONG/SHORT/FLAT/WATCH), `horizon` (4h/4h-24h/24h+), `confidence` (0-1)
+- Tenor suggéré : PERP (horizon court), 1W DATED_FUTURE (horizon intermédiaire), 1M (horizon long)
+- Drivers : top 4 edges classés par contribution
+
+**Backtest récent (BTC 1h, 90j, threshold=0.05) :**
+- `edge_carry_momentum` : 91 signaux, WR 57.1% à +4h ✓
+- `edge_skew_panic` : 2156 signaux (quasi-permanent, filtre implicite)
+- `edge_mark_dislocation` / `edge_term_structure_kink` : 0 signaux sur 90j → threshold à baisser si besoin
+
+**Signal actuel (2026-04-30) :**
+- Action : LONG | Tenor : 1W DATED_FUTURE | Confidence : 0.69 | EdgeTotal : 0.047
+- Drivers : skew_panic (0.26), options_vol_premium (0.08), funding_reversion (0.02)
+
+**CLI :**
+```bash
+# Signal + notification Discord
+python analysis/run_deribit_signal.py --asset BTC --timeframe 1h --days 90 --notify
+
+# Edge frame brut
+python analysis/run_deribit_futures.py --asset BTC --timeframe 1h --days 90 --output db/deribit_futures_edges.csv
+
+# Backtest
+python analysis/run_deribit_backtest.py --asset BTC --timeframe 1h --days 90 --threshold 0.05 --output db/deribit_backtest.csv
+```
+
+**Bugfix important :**
+- `_clean_json_record` dans `api/app.py` doit être **recursive** — `index_price` peut être `NaN` dans les snapshots Deribit (nœud imbriqué), causait HTTP 500. Corrigé commit `44b1d91`.
+
+---
+
+### P8 — Stratégie SPOT BTC (à développer — remplace ancien P7)
 
 Objectif : second pilier de portefeuille, décorrélé de Pi* (FUTURES intraday), pour diversifier les sources d'EV au sens de Paolucci.
 
@@ -433,6 +508,69 @@ run_backtest_stats(
     entry_mode="baseline", macro_rules=MACRO_RULES
 )
 ```
+
+---
+
+## 12. Module Deribit Futures — référence rapide
+
+### Config classes
+
+```python
+# features.py
+@dataclass
+class EdgeBuildConfig:
+    asset: str = "BTC"
+    timeframe: str = "1h"
+    days: int = 14
+    funding_days: int = 30
+    zscore_lookback_days: int = 90
+
+# backtest.py
+@dataclass
+class BacktestConfig:
+    asset: str = "BTC"
+    timeframe: str = "1h"
+    days: int = 90
+    threshold: float = 0.05
+    min_signals: int = 10
+    horizons_hours: list = field(default_factory=lambda: [4, 24])
+
+# signal.py
+@dataclass
+class SignalConfig:
+    asset: str = "BTC"
+    timeframe: str = "1h"
+    days: int = 90
+    min_net_score: float = 0.03
+```
+
+### Format du signal retourné
+
+```json
+{
+  "asset": "BTC", "timeframe": "1h", "days": 90,
+  "signal": {
+    "action": "LONG",
+    "horizon": "4h-24h",
+    "confidence": 0.69,
+    "net_score": 0.284,
+    "contract": {
+      "instrument": "DATED_FUTURE",
+      "tenor": "1W",
+      "why": "Horizon intermediaire, echeance hebdo adaptee a une conviction tactique."
+    }
+  },
+  "edges": { "edge_skew_panic": 0.263, "edge_options_vol_premium": 0.085, ... },
+  "drivers": [{"name": "skew_panic", "score": 0.263}, ...],
+  "snapshot": { "mark_price": 76331, "index_price": null, "open_interest": 958926150, ... },
+  "options": { "iv_atm": 31.4, "iv_skew_25d": 3.16, "put_call_ratio": 0.776, "term_1w": 39.4, ... }
+}
+```
+
+### Règles de sérialisation JSON
+
+`_clean_json_record(obj)` dans `api/app.py` est **récursive** (dict + list + float NaN → None).
+Ne jamais la remplacer par une version plate — `index_price` est souvent NaN dans les snapshots Deribit.
 
 ---
 
