@@ -146,7 +146,7 @@ Ce document resume toute la procedure realisee depuis le debut de la demande HTF
 - Integrer un loader HTF minimal en mode dry-run dans le flux live/shadow,
   sans remplacer la logique actuelle, pour comparer les signaux en production passive.
 
-## 14) Decision actee (2026-04-29)
+## 14) Decision actee (2026-04-29) — Reorganisation et frequence
 
 - Constat valide: une frequence autour de 3 trades/an est trop faible pour l objectif.
 - Action decidee: retravailler la selection/filtrage pour augmenter la frequence des signaux
@@ -154,3 +154,11 @@ Ce document resume toute la procedure realisee depuis le debut de la demande HTF
 - Action decidee pour la prochaine session:
   - reorganiser les fiches pour separer clairement ce qui concerne Pi* et ce qui concerne HFT
   - appliquer cette separation dans la documentation et le suivi operatif
+
+## 15) Reorganisation documentaire effectuee (2026-04-30)
+
+- Fichier cree: [HANDOFF_HTF.md](HANDOFF_HTF.md) — passation operationnelle HTF (etat actuel, decisions, prochaines etapes)
+- Fichier nettoye: [HANDOFF.md](HANDOFF.md) — ne contient plus que Pi*, avec pointeur vers HANDOFF_HTF.md
+- Ce fichier (PROCEDURE_HTF_COMPLETE.md) conserve le journal chronologique complet HTF.
+- [HTF_STATES_AGENT_HANDOFF.txt](HTF_STATES_AGENT_HANDOFF.txt) conserve la specification design des 10 fiches.
+

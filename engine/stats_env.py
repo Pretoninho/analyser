@@ -19,7 +19,8 @@ import pytz
 from engine.stats_state import (
     N_STATES, N_ACTIONS, ET_TZ, MACROS, PRE_MACRO_WINDOWS,
     encode, macro_ctx, compute_daily_context, compute_pool_ctx,
-    build_weekly_levels,
+    build_weekly_levels, attach_microstructure_overlay,
+    microstructure_trade_allowed, MICRO_OVERLAY_DEFAULTS,
 )
 
 FEE_RATE   = 0.0005   # 0.05% taker
@@ -29,7 +30,20 @@ MAX_TRADES = 2        # trades max par jour
 
 class StatsEnv:
 
-    def __init__(self, df_1m: pd.DataFrame):
+    def __init__(
+        self,
+        df_1m: pd.DataFrame,
+        microstructure_enabled: bool = False,
+        microstructure_config: dict | None = None,
+    ):
+        self._microstructure_enabled = bool(microstructure_enabled)
+        self._microstructure_config = dict(MICRO_OVERLAY_DEFAULTS)
+        if microstructure_config:
+            self._microstructure_config.update(microstructure_config)
+
+        if self._microstructure_enabled:
+            df_1m = attach_microstructure_overlay(df_1m, config=self._microstructure_config)
+
         self._weekly = build_weekly_levels(df_1m)
         self._episodes, self._dates = self._build_episodes(df_1m)
         self._ep_idx  = 0
@@ -93,6 +107,15 @@ class StatsEnv:
 
         trade_opened = False
         desired = {0: 0, 1: 1, 2: -1}[int(action)]
+
+        if desired != 0 and mac != 0 and self._microstructure_enabled:
+            if not microstructure_trade_allowed(
+                row,
+                action=int(action),
+                allow_neutral=bool(self._microstructure_config.get("allow_neutral", True)),
+            ):
+                desired = 0
+
         if desired != self._position:
             if self._position != 0:
                 reward += self._close_position(price)

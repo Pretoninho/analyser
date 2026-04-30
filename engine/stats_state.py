@@ -52,6 +52,19 @@ STRONG_DAYS   = {0, 2}   # Lundi, Mercredi
 WEAK_DAYS     = set()     # Jeudi retire — laissons les donnees decider
 
 
+MICRO_OVERLAY_DEFAULTS = {
+    "ofi_threshold": 0.10,
+    "lri_threshold": 0.02,
+    "sigma_high_pct": 0.75,
+    "hawkes_high_pct": 0.75,
+    "depth_low_pct": 0.25,
+    "beta_high_pct": 0.75,
+    "rolling_window": 500,
+    "min_periods": 50,
+    "allow_neutral": True,
+}
+
+
 def month_ctx(month: int) -> int:
     if month in STRONG_MONTHS: return 2
     if month in WEAK_MONTHS:   return 0
@@ -215,3 +228,114 @@ def compute_daily_context(df_day: pd.DataFrame, pwh=None, pwl=None) -> dict:
         "session_high": sess_h,
         "session_low":  sess_l,
     }
+
+
+def attach_microstructure_overlay(
+    df_1m: pd.DataFrame,
+    config: dict | None = None,
+) -> pd.DataFrame:
+    """
+    Add 1m microstructure overlay columns usable as optional pre-entry filters.
+
+    The overlay does not change the 1944-state encoding. It only adds auxiliary
+    columns derived from Binance-compatible 1m order-flow features.
+    """
+    from engine.microstructure.orderflow import compute_orderflow_features
+
+    cfg = dict(MICRO_OVERLAY_DEFAULTS)
+    if config:
+        cfg.update(config)
+
+    out = compute_orderflow_features(df_1m)
+
+    rolling_window = int(cfg["rolling_window"])
+    min_periods = int(cfg["min_periods"])
+
+    sigma_ref = (
+        out["sigma_ewma"]
+        .rolling(rolling_window, min_periods=min_periods)
+        .quantile(float(cfg["sigma_high_pct"]))
+        .shift(1)
+        .bfill()
+    )
+    hawkes_ref = (
+        out["hawkes_lambda"]
+        .rolling(rolling_window, min_periods=min_periods)
+        .quantile(float(cfg["hawkes_high_pct"]))
+        .shift(1)
+        .bfill()
+    )
+    depth_ref = (
+        out["depth_proxy"]
+        .rolling(rolling_window, min_periods=min_periods)
+        .quantile(float(cfg["depth_low_pct"]))
+        .shift(1)
+        .bfill()
+    )
+    beta_ref = (
+        out["beta_proxy"]
+        .rolling(rolling_window, min_periods=min_periods)
+        .quantile(float(cfg["beta_high_pct"]))
+        .shift(1)
+        .bfill()
+    )
+
+    out["micro_sigma_ref"] = sigma_ref.astype("float32")
+    out["micro_hawkes_ref"] = hawkes_ref.astype("float32")
+    out["micro_depth_ref"] = depth_ref.astype("float32")
+    out["micro_beta_ref"] = beta_ref.astype("float32")
+
+    out["micro_sigma_high"] = (out["sigma_ewma"] >= out["micro_sigma_ref"]).astype("int8")
+    out["micro_hawkes_high"] = (out["hawkes_lambda"] >= out["micro_hawkes_ref"]).astype("int8")
+    out["micro_depth_thin"] = (out["depth_proxy"] <= out["micro_depth_ref"]).astype("int8")
+    out["micro_beta_high"] = (out["beta_proxy"] >= out["micro_beta_ref"]).astype("int8")
+
+    buy_bias = (out["ofi_norm"] > float(cfg["ofi_threshold"])) & (out["lri"] >= -float(cfg["lri_threshold"]))
+    sell_bias = (out["ofi_norm"] < -float(cfg["ofi_threshold"])) & (out["lri"] <= float(cfg["lri_threshold"]))
+
+    out["micro_bias"] = 0
+    out.loc[buy_bias, "micro_bias"] = 1
+    out.loc[sell_bias, "micro_bias"] = -1
+    out["micro_bias"] = out["micro_bias"].astype("int8")
+
+    out["micro_toxic_flag"] = (
+        (out["micro_sigma_high"] == 1)
+        & (out["micro_hawkes_high"] == 1)
+        & ((out["micro_depth_thin"] == 1) | (out["micro_beta_high"] == 1))
+    ).astype("int8")
+
+    out["micro_entry_score"] = (
+        0.70 * out["ofi_norm"]
+        + 0.30 * out["lri"]
+        - 0.25 * out["micro_toxic_flag"]
+        - 0.10 * out["micro_beta_high"]
+    ).astype("float32")
+
+    out["micro_trade_ok"] = (out["micro_toxic_flag"] == 0).astype("int8")
+    return out
+
+
+def microstructure_trade_allowed(
+    row: pd.Series,
+    action: int,
+    allow_neutral: bool = True,
+) -> bool:
+    """
+    Directional microstructure gate for stats trading logic.
+
+    action: 0=FLAT, 1=LONG, 2=SHORT
+    """
+    if int(action) == 0:
+        return True
+
+    if int(row.get("micro_trade_ok", 1)) == 0:
+        return False
+
+    bias = int(row.get("micro_bias", 0))
+    if bias == 0:
+        return bool(allow_neutral)
+    if int(action) == 1:
+        return bias > 0
+    if int(action) == 2:
+        return bias < 0
+    return True

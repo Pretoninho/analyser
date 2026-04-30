@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = ROOT / "display" / "analysis"
 DB_DIR = ROOT / "db"
 
@@ -102,7 +102,7 @@ def _save_seed(seed: dict, profile_name: str) -> None:
     DB_DIR.mkdir(parents=True, exist_ok=True)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    pkl_path = DB_DIR / f"stats_agent_htf_seed_{profile_name}.pkl"
+    pkl_path = DB_DIR / "htf" / f"stats_agent_htf_seed_{profile_name}.pkl"
     csv_path = OUT_DIR / f"htf_qtable_seed_{profile_name}.csv"
 
     with pkl_path.open("wb") as f:

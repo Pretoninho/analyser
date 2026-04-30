@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
-DB_PATH = ROOT / "db" / "htf_state_combinations.db"
+ROOT = Path(__file__).resolve().parents[2]
+DB_PATH = ROOT / "db" / "htf" / "htf_state_combinations.db"
 OUT_DIR = ROOT / "display" / "analysis"
 
 CSV_2 = OUT_DIR / "htf_relevant_combo_stats_2.csv"

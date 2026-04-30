@@ -7,11 +7,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from analysis.backtest_htf_probabilistic import _build_daily_frame, _compute_probabilities
-from analysis.generate_htf_state_combinations import STATES, DB_PATH
+from analysis.htf.backtest_htf_probabilistic import _build_daily_frame, _compute_probabilities
+from analysis.htf.generate_htf_state_combinations import STATES, DB_PATH
 
 OUT_DIR = ROOT / "display" / "analysis"
 OUT_DIR.mkdir(parents=True, exist_ok=True)

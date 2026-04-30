@@ -8,18 +8,18 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from analysis.backtest_htf_probabilistic import _build_daily_frame, _compute_probabilities
-from analysis.build_htf_combo_stats import _aggregate_combo_signal, _build_state_signals
+from analysis.htf.backtest_htf_probabilistic import _build_daily_frame, _compute_probabilities
+from analysis.htf.build_htf_combo_stats import _aggregate_combo_signal, _build_state_signals
 
 OUT_DIR = ROOT / "display" / "analysis"
 DB_DIR = ROOT / "db"
 
 
 def _load_seed(profile: str) -> dict:
-    path = DB_DIR / f"stats_agent_htf_seed_{profile}.pkl"
+    path = DB_DIR / "htf" / f"stats_agent_htf_seed_{profile}.pkl"
     if not path.exists():
         raise FileNotFoundError(f"Seed introuvable: {path}")
     with path.open("rb") as f:
