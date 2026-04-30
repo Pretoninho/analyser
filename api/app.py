@@ -629,14 +629,14 @@ def _safe_api(v):
         return None
 
 
-def _clean_json_record(obj: dict) -> dict:
-    cleaned = {}
-    for k, v in obj.items():
-        if isinstance(v, float) and not np.isfinite(v):
-            cleaned[k] = None
-        else:
-            cleaned[k] = v
-    return cleaned
+def _clean_json_record(obj):
+    if isinstance(obj, dict):
+        return {k: _clean_json_record(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_clean_json_record(v) for v in obj]
+    if isinstance(obj, float) and not np.isfinite(obj):
+        return None
+    return obj
 
 
 @app.get("/api/deribit/edges")
