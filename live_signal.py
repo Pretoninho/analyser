@@ -10,6 +10,9 @@ Variables d'environnement requises :
 
 Optionnelles :
   BINANCE_BASE_URL   (defaut: https://api.binance.com)
+    USE_MICROSTRUCTURE (defaut: 1)
+    MICRO_OFI_THRESHOLD (defaut: 0.10)
+    MICRO_ALLOW_NEUTRAL (defaut: 1)
 """
 
 import os
@@ -43,8 +46,18 @@ ET_TZ = pytz.timezone("America/New_York")
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
 
-from engine.stats_state import encode, compute_pool_ctx, month_ctx, day_ctx
+from engine.stats_state import (
+    encode, compute_pool_ctx, month_ctx, day_ctx,
+    attach_microstructure_overlay, microstructure_trade_allowed,
+)
 from engine.q_agent import QAgent
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
 
 
 # ── Binance API ───────────────────────────────────────────────────
@@ -58,9 +71,11 @@ def fetch_klines(interval: str, limit: int) -> pd.DataFrame:
             "close_time", "qv", "n", "tbb", "tbq", "ignore"]
     df = pd.DataFrame(resp.json(), columns=cols)
     df["timestamp"] = pd.to_datetime(df["open_time"], unit="ms", utc=True)
-    for c in ("open", "high", "low", "close"):
+    for c in ("open", "high", "low", "close", "volume", "tbb"):
         df[c] = df[c].astype(float)
-    return df[["timestamp", "open", "high", "low", "close"]]
+    out = df[["timestamp", "open", "high", "low", "close", "volume", "tbb"]].copy()
+    out = out.rename(columns={"tbb": "taker_buy_vol"})
+    return out
 
 
 # ── Contextes ─────────────────────────────────────────────────────
@@ -205,9 +220,22 @@ def main():
 
     print(f"[live] {now_et.strftime('%Y-%m-%d %H:%M')} ET -- calcul signal Pi* 09:50...")
 
+    use_microstructure = _env_bool("USE_MICROSTRUCTURE", True)
+    micro_ofi_threshold = float(os.environ.get("MICRO_OFI_THRESHOLD", "0.10"))
+    micro_allow_neutral = _env_bool("MICRO_ALLOW_NEUTRAL", True)
+
     # Fetch donnees
     df_1m = fetch_klines("1m", 1500)   # ~25h de bougies
     df_1d = fetch_klines("1d", 14)     # 14 jours pour PWH/PWL
+
+    if use_microstructure:
+        df_1m = attach_microstructure_overlay(
+            df_1m,
+            config={
+                "ofi_threshold": micro_ofi_threshold,
+                "allow_neutral": micro_allow_neutral,
+            },
+        )
 
     # Preparation du jour en ET
     df_1m["ts_et"]   = df_1m["timestamp"].dt.tz_convert(ET_TZ)
@@ -296,6 +324,22 @@ def main():
         send_discord(msg)
         log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": pc, "state": state, "action": action, "q_val": q_val, "would_trade": False, "flat_reason": "q_flat"})
         sys.exit(0)
+
+    if use_microstructure:
+        micro_row = pre_df.iloc[-1]
+        if not microstructure_trade_allowed(
+            micro_row, action=action, allow_neutral=micro_allow_neutral,
+        ):
+            print(f"[live] FLAT (micro gate) -- state={state} action={action}")
+            msg = build_message(0, "FLAT", 0, 0, 0, lc, pc, sc, q_val, now_et, "micro gate")
+            send_discord(msg)
+            log_csv(today.isoformat(), {
+                "mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc,
+                "lc": lc, "sc": sc, "pc": pc, "state": state,
+                "action": action, "q_val": q_val, "would_trade": False,
+                "flat_reason": "micro_gate",
+            })
+            sys.exit(0)
 
     direction = "LONG" if action == 1 else "SHORT"
     entry_px  = float(first["open"])

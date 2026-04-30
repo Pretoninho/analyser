@@ -508,6 +508,29 @@ def shadow_run():
         raise HTTPException(500, str(e))
 
 
+@app.post("/api/live/run")
+def live_run():
+    """Declenche live_signal.py immediatement (hors schedule). Utile pour test."""
+    script = str(ROOT / "live_signal.py")
+    try:
+        result = subprocess.run(
+            [sys.executable, script],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        return {
+            "exit_code": result.returncode,
+            "stdout": result.stdout[-4000:] if result.stdout else "",
+            "stderr": result.stderr[-2000:] if result.stderr else "",
+        }
+    except subprocess.TimeoutExpired:
+        raise HTTPException(504, "live_signal.py timeout (120s).")
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
 @app.post("/api/discord/test")
 def discord_test():
     """Envoie un message de test sur Discord depuis le container Railway."""

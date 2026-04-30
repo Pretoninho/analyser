@@ -54,3 +54,28 @@ export async function fetchQTable(macIdx?: number) {
   if (!res.ok) throw new Error(`qtable: ${res.status}`)
   return res.json()
 }
+
+export type SignalRunResponse = {
+  exit_code: number
+  stdout: string
+  stderr: string
+}
+
+async function postRun(path: "/api/live/run" | "/api/shadow/run") {
+  const res = await fetch(apiUrl(path), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+    cache: "no-store",
+  })
+  if (!res.ok) throw new Error(`${path}: ${res.status}`)
+  return res.json() as Promise<SignalRunResponse>
+}
+
+export async function runLiveSignal() {
+  return postRun("/api/live/run")
+}
+
+export async function runShadowSignal() {
+  return postRun("/api/shadow/run")
+}

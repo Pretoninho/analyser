@@ -17,6 +17,9 @@ Variables d'environnement requises :
 
 Optionnelles :
   BINANCE_BASE_URL   (defaut: https://api.binance.com)
+    USE_MICROSTRUCTURE (defaut: 1)
+    MICRO_OFI_THRESHOLD (defaut: 0.10)
+    MICRO_ALLOW_NEUTRAL (defaut: 1)
 """
 
 import os
@@ -39,6 +42,7 @@ from pi_config import (
 )
 from engine.stats_state import (
     MACROS, encode, compute_pool_ctx, compute_daily_context,
+    attach_microstructure_overlay, microstructure_trade_allowed,
 )
 from engine.q_agent import QAgent
 
@@ -51,6 +55,13 @@ MAC_NAMES  = {
     1: "08:50", 2: "09:50", 3: "10:50",
     4: "11:50", 5: "12:50", 6: "13:50", 7: "14:50",
 }
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
 
 
 # ── Binance API ───────────────────────────────────────────────────
@@ -68,9 +79,11 @@ def fetch_klines(interval: str, limit: int) -> pd.DataFrame:
             "close_time", "qv", "n", "tbb", "tbq", "ignore"]
     df = pd.DataFrame(resp.json(), columns=cols)
     df["timestamp"] = pd.to_datetime(df["open_time"], unit="ms", utc=True)
-    for c in ("open", "high", "low", "close"):
+    for c in ("open", "high", "low", "close", "volume", "tbb"):
         df[c] = df[c].astype(float)
-    return df[["timestamp", "open", "high", "low", "close"]]
+    out = df[["timestamp", "open", "high", "low", "close", "volume", "tbb"]].copy()
+    out = out.rename(columns={"tbb": "taker_buy_vol"})
+    return out
 
 
 # ── PWH/PWL depuis donnees daily ─────────────────────────────────
@@ -130,7 +143,16 @@ def sim_trade(exit_df, entry_px, direction, sl_pct, tp_pct):
 
 # ── Traitement d'une macro ────────────────────────────────────────
 
-def process_macro(mac_idx, today_df, daily_ctx, pwh, pwl, agent):
+def process_macro(
+    mac_idx,
+    today_df,
+    daily_ctx,
+    pwh,
+    pwl,
+    agent,
+    use_microstructure=False,
+    micro_allow_neutral=True,
+):
     """
     Calcule le signal shadow pour mac_idx.
     Retourne un dict avec tous les champs de log.
@@ -217,6 +239,19 @@ def process_macro(mac_idx, today_df, daily_ctx, pwh, pwl, agent):
             base.update({"sc": sc, "pc": pc, "state": state,
                          "action": action, "q_val": q_val, "flat_reason": "q_flat"})
             return base
+
+    if use_microstructure and not microstructure_trade_allowed(
+        pre_df.iloc[-1], action=action, allow_neutral=micro_allow_neutral,
+    ):
+        base.update({
+            "sc": sc,
+            "pc": pc,
+            "state": state,
+            "action": action,
+            "q_val": q_val,
+            "flat_reason": "micro_gate",
+        })
+        return base
 
     entry_px = float(first["open"])
     base.update({
@@ -388,9 +423,22 @@ def main():
 
     print(f"[shadow] {now_et.strftime('%Y-%m-%d %H:%M')} ET -- calcul shadow Pi*...")
 
+    use_microstructure = _env_bool("USE_MICROSTRUCTURE", True)
+    micro_ofi_threshold = float(os.environ.get("MICRO_OFI_THRESHOLD", "0.10"))
+    micro_allow_neutral = _env_bool("MICRO_ALLOW_NEUTRAL", True)
+
     # Fetch donnees
     df_1m = fetch_klines("1m", 1500)  # ~25h de bougies
     df_1d = fetch_klines("1d", 14)   # 14 jours pour PWH/PWL
+
+    if use_microstructure:
+        df_1m = attach_microstructure_overlay(
+            df_1m,
+            config={
+                "ofi_threshold": micro_ofi_threshold,
+                "allow_neutral": micro_allow_neutral,
+            },
+        )
 
     # Preparation colonnes ET
     df_1m["ts_et"]   = df_1m["timestamp"].dt.tz_convert(ET_TZ)
@@ -422,13 +470,21 @@ def main():
     live_results   = []
 
     for mac_idx in macros_shadow:
-        r = process_macro(mac_idx, today_df, daily_ctx, pwh, pwl, agent)
+        r = process_macro(
+            mac_idx, today_df, daily_ctx, pwh, pwl, agent,
+            use_microstructure=use_microstructure,
+            micro_allow_neutral=micro_allow_neutral,
+        )
         status = r["exit_reason"] if r["would_trade"] else f"FLAT ({r['flat_reason'] or 'no_data'})"
         print(f"[shadow] mac={mac_idx} ({MAC_NAMES[mac_idx]}) -> {status}")
         shadow_results.append(r)
 
     for mac_idx in macros_live:
-        r = process_macro(mac_idx, today_df, daily_ctx, pwh, pwl, agent)
+        r = process_macro(
+            mac_idx, today_df, daily_ctx, pwh, pwl, agent,
+            use_microstructure=use_microstructure,
+            micro_allow_neutral=micro_allow_neutral,
+        )
         # Jour skippe : le trade n'aurait pas ete pris en live
         if r["would_trade"]:
             r["would_trade"] = False

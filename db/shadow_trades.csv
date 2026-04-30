@@ -9,3 +9,8 @@ date,mac_idx,mac_name,mc,dc,lc,sc,pc,state,action,q_val,would_trade,flat_reason,
 2026-04-28,5,12:50,1,1,0,0,0,-1,0,0.0,False,no_sweep,,,,,NO_DATA,0
 2026-04-28,6,13:50,1,1,0,-1,-1,-1,0,0.0,False,no_data,,,,,NO_DATA,0
 2026-04-28,7,14:50,1,1,0,-1,-1,-1,0,0.0,False,no_data,,,,,NO_DATA,0
+2026-04-30,1,08:50,1,1,1,0,0,-1,0,0.0,False,no_sweep,,,,,NO_DATA,0
+2026-04-30,3,10:50,1,1,1,-1,-1,-1,0,0.0,False,no_data,,,,,NO_DATA,0
+2026-04-30,5,12:50,1,1,1,-1,-1,-1,0,0.0,False,no_data,,,,,NO_DATA,0
+2026-04-30,6,13:50,1,1,1,-1,-1,-1,0,0.0,False,no_data,,,,,NO_DATA,0
+2026-04-30,7,14:50,1,1,1,-1,-1,-1,0,0.0,False,no_data,,,,,NO_DATA,0

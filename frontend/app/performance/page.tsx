@@ -1,6 +1,7 @@
 import { fetchPerformance } from "@/lib/api"
 import { fmtPct, pnlClass } from "@/lib/utils"
 import StatCard from "@/components/StatCard"
+import SignalControls from "@/components/SignalControls"
 
 export default async function PerformancePage() {
   const data = await fetchPerformance().catch(() => null)
@@ -18,6 +19,8 @@ export default async function PerformancePage() {
         <h1 className="text-lg font-semibold text-white">Performance</h1>
         <p className="text-sm text-slate-500 mt-0.5">Toutes macros — live + shadow</p>
       </div>
+
+      <SignalControls />
 
       {/* Métriques globales */}
       <div className="grid grid-cols-5 gap-3 mb-6">
