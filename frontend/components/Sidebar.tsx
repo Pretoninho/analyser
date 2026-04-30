@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 
 const links = [
   { href: "/daily",       label: "Rapport journalier" },
+  { href: "/pipeline",    label: "Pipeline" },
   { href: "/trades",      label: "Trades" },
   { href: "/performance", label: "Performance" },
   { href: "/qtable",      label: "Q-Table" },
