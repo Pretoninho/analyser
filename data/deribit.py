@@ -655,3 +655,91 @@ def fetch_options_analytics(asset: str, max_books: int = 40) -> dict:
         "max_pain": max_pain,
         "gex": float(gex),
     }
+
+
+def fetch_option_chain_snapshot(asset: str) -> pd.DataFrame:
+    """
+    Recupere un snapshot de la chaine options Deribit (non expirée).
+
+    Colonnes de sortie:
+      instrument_name, expiry_ts, strike, option_type,
+      bid_price, ask_price, mark_price, mark_iv,
+      open_interest, volume_usd, index_price, dte_days
+    """
+    currency = asset.upper()
+    now_ts = int(time.time())
+
+    try:
+        summaries = _api_get(
+            "get_book_summary_by_currency",
+            {"currency": currency, "kind": "option"},
+            timeout=20,
+        )
+        instruments = _api_get(
+            "get_instruments",
+            {"currency": currency, "kind": "option", "expired": "false"},
+            timeout=20,
+        )
+    except RuntimeError as e:
+        print(f"[deribit] Option chain indisponible: {e}")
+        return pd.DataFrame()
+
+    if not summaries or not instruments:
+        print(f"[deribit] Option chain vide pour {currency}")
+        return pd.DataFrame()
+
+    meta_by_name = {
+        i.get("instrument_name"): {
+            "expiry_ts": int(i.get("expiration_timestamp", 0)) // 1000,
+            "strike": _safe_float(i.get("strike")),
+            "option_type": i.get("option_type", "").lower(),
+        }
+        for i in instruments
+        if i.get("instrument_name")
+    }
+
+    rows = []
+    for s in summaries:
+        name = s.get("instrument_name")
+        if not name or name not in meta_by_name:
+            continue
+
+        m = meta_by_name[name]
+        exp = m["expiry_ts"]
+        if exp <= now_ts:
+            continue
+
+        index_price = _safe_float(s.get("underlying_price"))
+        if index_price is None:
+            index_price = _safe_float(s.get("index_price"))
+
+        rows.append(
+            {
+                "instrument_name": name,
+                "expiry_ts": exp,
+                "strike": m["strike"],
+                "option_type": m["option_type"],
+                "bid_price": _safe_float(s.get("bid_price")),
+                "ask_price": _safe_float(s.get("ask_price")),
+                "mark_price": _safe_float(s.get("mark_price")),
+                "mark_iv": _safe_float(s.get("mark_iv")),
+                "open_interest": _safe_float(s.get("open_interest")),
+                "volume_usd": _safe_float(s.get("volume_usd")),
+                "index_price": index_price,
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+    df = df.dropna(subset=["strike", "index_price"]).copy()
+    if df.empty:
+        return df
+
+    df["dte_days"] = (df["expiry_ts"] - now_ts) / 86400.0
+    df = df[df["dte_days"] > 0].copy()
+    df = df.sort_values(["expiry_ts", "strike"]).reset_index(drop=True)
+
+    print(f"[deribit] Option chain {currency}: {len(df)} options actives")
+    return df
