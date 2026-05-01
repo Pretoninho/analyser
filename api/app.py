@@ -143,10 +143,26 @@ async def lifespan(app: FastAPI):
                 minute=deribit_minute,
             )
 
+    # TA strategy : scan toutes les 15 min pendant London (07-11 UTC) + NY (13-17 UTC)
+    ta_enabled = _env_bool("TA_NOTIFY_ENABLED", True)
+    if ta_enabled:
+        def _ta_notify_job():
+            try:
+                from strategies.ta.discord_notify import run_and_notify
+                run_and_notify()
+            except Exception as e:
+                print(f"[scheduler] TA notify failed: {e}", flush=True)
+
+        scheduler.add_job(_ta_notify_job, "cron",
+                          day_of_week="mon-fri", hour="7-10,13-16", minute="0,15,30,45")
+
     scheduler.start()
+    ta_status = "enabled" if ta_enabled else "disabled"
     print(
         "[scheduler] APScheduler demarre "
-        f"(live 09:51 mac=2, live 11:51 mac=4, shadow 16:05 ET, deribit_enabled={deribit_enabled}, deribit_mode={deribit_mode})",
+        f"(live 09:51 mac=2, live 11:51 mac=4, shadow 16:05 ET, "
+        f"deribit_enabled={deribit_enabled}, deribit_mode={deribit_mode}, "
+        f"ta_notify={ta_status})",
         flush=True,
     )
     yield
