@@ -15,6 +15,7 @@ import requests
 import pandas as pd
 
 from strategies.ta.live_runner import scan
+from strategies.ta.signal_logger import log_signal
 
 WEBHOOK_ENV = "DISCORD_WEBHOOK_TA_URL"
 
@@ -97,6 +98,8 @@ def run_and_notify(symbol: str = "BTCUSDT") -> bool:
             timeout=10,
         )
         resp.raise_for_status()
+        # Log du signal pour résolution future
+        log_signal(result)
         print(
             f"[ta_notify] Signal sent: {trigger} | {n} matches | "
             f"regime={result['current_state'].get('regime')} | "

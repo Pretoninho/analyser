@@ -22,6 +22,7 @@ from plotly.subplots import make_subplots
 
 from strategies.ta.features import _ema, _rsi, _atr, _stoch_k, _vwap_daily
 from strategies.ta.live_runner import scan, load_live_configs, LIVE_MIN_N_OOS, LIVE_WR_DROP
+from strategies.ta.signal_logger import live_stats, _load as _load_signals
 from strategies.ta.config import SESSIONS_UTC, SYMBOL
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -298,6 +299,55 @@ def render_signals(result: dict) -> None:
     st.dataframe(pd.DataFrame(rows), use_container_width=True, height=300)
 
 
+def _render_performance() -> None:
+    stats = live_stats()
+    n_total   = stats["n_total"]
+    n_pending = stats["n_pending"]
+
+    if n_total == 0:
+        st.info("Aucun signal enregistré pour l'instant. Le premier apparaitra lundi à l'ouverture London (07:00 UTC).")
+        return
+
+    # Métriques globales
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("Signaux total", n_total)
+    c2.metric("En attente", n_pending)
+    c3.metric("Résolus", stats.get("n_resolved", 0))
+    if stats["wr"] is not None:
+        wr_pct   = f"{stats['wr']:.1%}"
+        exp_str  = f"{stats['exp_R']:+.3f}R"
+        wr_delta = f"{stats['wr'] - 0.55:+.1%} vs min 55%"
+        c4.metric("Win Rate", wr_pct, wr_delta)
+        c5.metric("Expectancy", exp_str)
+
+    # Par régime
+    by_regime = stats.get("by_regime", {})
+    if by_regime:
+        st.caption("Par régime")
+        rows = []
+        for reg, s in by_regime.items():
+            rows.append({
+                "Regime":    reg,
+                "n":         s["n"],
+                "WR live":   f"{s['wr']:.1%}",
+                "Exp live":  f"{s['exp_R']:+.3f}R",
+            })
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    # Historique complet
+    with st.expander("Historique des signaux"):
+        df_sig = _load_signals()
+        if not df_sig.empty:
+            disp_cols = ["signal_id", "timestamp", "direction", "regime",
+                         "entry_price", "tp", "sl", "n_matches", "top_params",
+                         "top_wr_oos", "outcome", "exit_price", "n_bars", "r_realized"]
+            disp_cols = [c for c in disp_cols if c in df_sig.columns]
+            st.dataframe(
+                df_sig[disp_cols].sort_values("timestamp", ascending=False),
+                use_container_width=True, height=350,
+            )
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Layout principal
 # ─────────────────────────────────────────────────────────────────────────────
@@ -387,6 +437,12 @@ def main() -> None:
     with col_signals:
         st.subheader("Signaux")
         render_signals(result)
+
+    st.divider()
+
+    # ── Performance live ──────────────────────────────────────────────────────
+    st.subheader("Performance live vs backtest")
+    _render_performance()
 
     st.divider()
 

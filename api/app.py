@@ -153,8 +153,19 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 print(f"[scheduler] TA notify failed: {e}", flush=True)
 
+        def _ta_resolve_job():
+            try:
+                from strategies.ta.signal_logger import resolve_pending
+                n = resolve_pending()
+                if n:
+                    print(f"[scheduler] TA resolved {n} signal(s)", flush=True)
+            except Exception as e:
+                print(f"[scheduler] TA resolve failed: {e}", flush=True)
+
         scheduler.add_job(_ta_notify_job, "cron",
                           day_of_week="mon-fri", hour="7-10,13-16", minute="0,15,30,45")
+        # Résolution toutes les heures 24/7 (les trades peuvent expirer la nuit)
+        scheduler.add_job(_ta_resolve_job, "cron", minute=5)
 
     scheduler.start()
     ta_status = "enabled" if ta_enabled else "disabled"
