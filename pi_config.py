@@ -16,12 +16,12 @@ Transfert LIVE -> SHADOW :
 #       1    08:50      SHADOW  (pre-NYSE, signal OOS negatif)
 #       2    09:50      LIVE    (macro active STAR)
 #       3    10:50      SHADOW  (pas de signal consistant OOS)
-#       4    11:50      SHADOW  (actif en backtest, pas encore valide live)
+#       4    11:50      LIVE    (WR 71.4%, 21 trades OOS -- actif depuis 2026-05-01)
 #       5    12:50      SHADOW  (pas de signal consistant OOS)
 #       6    13:50      SHADOW  (pas de signal consistant OOS)
 #       7    14:50      SHADOW  (Power Hour = phenomene equity, sans effet BTC)
 
-LIVE_MACROS   = frozenset({2})              # tradees en live  (live_signal.py)
+LIVE_MACROS   = frozenset({2, 4})           # tradees en live  (live_signal.py)
 SHADOW_MACROS = frozenset({1, 3, 5, 6, 7}) # paper trading EOD (shadow_signal.py)
 
 # ── Parametres de trading ─────────────────────────────────────────

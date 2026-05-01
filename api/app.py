@@ -57,10 +57,11 @@ AC_LABELS = {0: "FLAT",     1: "LONG",       2: "SHORT"}
 
 # ── Scheduler ─────────────────────────────────────────────────────
 
-def _run(script: str):
+def _run(script: str, args: list = None):
     """Lance un script Python dans un sous-processus (même container → CSV partagés)."""
     path = str(ROOT / script)
-    result = subprocess.run([sys.executable, path], cwd=str(ROOT))
+    cmd = [sys.executable, path] + (args or [])
+    result = subprocess.run(cmd, cwd=str(ROOT))
     if result.returncode not in (0, None):
         print(f"[scheduler] {script} exited with code {result.returncode}", flush=True)
 
@@ -101,9 +102,12 @@ def _notify_deribit_signal_job(timeframe: str = "1h", days: int = 90) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler(timezone=ET_TZ)
-    # live_signal : lun-ven 09:51 ET (DST géré automatiquement)
-    scheduler.add_job(lambda: _run("live_signal.py"),   "cron",
+    # live_signal : lun-ven 09:51 ET (mac=2)
+    scheduler.add_job(lambda: _run("live_signal.py", ["--mac", "2"]),   "cron",
                       day_of_week="mon-fri", hour=9, minute=51)
+    # live_signal : lun-ven 11:51 ET (mac=4 - 11:50)
+    scheduler.add_job(lambda: _run("live_signal.py", ["--mac", "4"]),   "cron",
+                      day_of_week="mon-fri", hour=11, minute=51)
     # shadow_signal : lun-ven 16:05 ET
     scheduler.add_job(lambda: _run("shadow_signal.py"), "cron",
                       day_of_week="mon-fri", hour=16, minute=5)
@@ -142,7 +146,7 @@ async def lifespan(app: FastAPI):
     scheduler.start()
     print(
         "[scheduler] APScheduler demarre "
-        f"(live 09:51 ET, shadow 16:05 ET, deribit_enabled={deribit_enabled}, deribit_mode={deribit_mode})",
+        f"(live 09:51 mac=2, live 11:51 mac=4, shadow 16:05 ET, deribit_enabled={deribit_enabled}, deribit_mode={deribit_mode})",
         flush=True,
     )
     yield

@@ -1,20 +1,24 @@
-"""
-live_signal.py — Signal live Pi* a l'ouverture de la macro ICT 09:50 ET.
+"""live_signal.py -- Signal live Pi* a l'ouverture d'une macro ICT.
 
-Declenchement Railway Cron (UTC) :
-  EDT avril-octobre  : 51 13 * * 1-5
-  EST novembre-mars  : 51 14 * * 1-5
+Usage :
+  python live_signal.py [--mac MAC_IDX]
+  MAC_IDX defaut = 2 (09:50 ET)
+
+Declenchement Railway APScheduler (dans api/app.py) :
+  09:51 ET  --mac 2
+  11:51 ET  --mac 4
 
 Variables d'environnement requises :
   DISCORD_WEBHOOK_URL
 
 Optionnelles :
-  BINANCE_BASE_URL   (defaut: https://api.binance.com)
-    USE_MICROSTRUCTURE (defaut: 1)
-    MICRO_OFI_THRESHOLD (defaut: 0.10)
-    MICRO_ALLOW_NEUTRAL (defaut: 1)
+  BINANCE_BASE_URL      (defaut: https://api.binance.com)
+  USE_MICROSTRUCTURE    (defaut: 1)
+  MICRO_OFI_THRESHOLD   (defaut: 0.10)
+  MICRO_ALLOW_NEUTRAL   (defaut: 1)
 """
 
+import argparse
 import os
 import sys
 import requests
@@ -26,19 +30,46 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 
+# ── Parse args (avant tout import config) ────────────────────────
+def _parse_args():
+    p = argparse.ArgumentParser()
+    p.add_argument("--mac", type=int, default=2,
+                   help="mac_idx ICT a trader (2=09:50, 4=11:50, ...)")
+    return p.parse_args()
+
+_ARGS = _parse_args()
+
 # ── Config active Pi* (source : pi_config.py) ────────────────────
 from pi_config import (
     SL_PCT, RR, EXIT_HM, Q_THRESHOLD, ALIGNED_ONLY, SKIP_DAYS, MACRO_RULES,
+    LIVE_MACROS,
 )
 
-MAC_IDX    = 2
-MAC_START  = 590   # 09:50 ET en minutes
-PRE_START  = 570   # 09:30 ET
-REF_WINDOW = 240   # 4h lookback pour BSL/SSL
+# ── Constantes macro derivees depuis mac_idx ─────────────────────
+# Heures ET en minutes depuis minuit (source : engine/stats_state.py MACROS)
+_MAC_STARTS = {
+    1: 530,   # 08:50
+    2: 590,   # 09:50
+    3: 650,   # 10:50
+    4: 710,   # 11:50
+    5: 770,   # 12:50
+    6: 830,   # 13:50
+    7: 890,   # 14:50
+}
+_MAC_NAMES = {
+    1: "08:50", 2: "09:50", 3: "10:50",
+    4: "11:50", 5: "12:50", 6: "13:50", 7: "14:50",
+}
 
-# Fenetre de tolerance autour de 09:50 ET (±5 min)
-WINDOW_LOW  = 585
-WINDOW_HIGH = 600
+MAC_IDX    = _ARGS.mac
+MAC_NAME   = _MAC_NAMES[MAC_IDX]
+MAC_START  = _MAC_STARTS[MAC_IDX]
+PRE_START  = MAC_START - 20   # 20 min avant la macro
+REF_WINDOW = 240              # 4h lookback pour BSL/SSL
+
+# Fenetre de tolerance : ±5 min autour de MAC_START
+WINDOW_LOW  = MAC_START - 5
+WINDOW_HIGH = MAC_START + 5
 
 ET_TZ = pytz.timezone("America/New_York")
 
@@ -137,7 +168,7 @@ def build_message(action: int, direction: str, entry: float,
                   flat_reason: str = "") -> str:
     ts = now_et.strftime("%Y-%m-%d %H:%M ET")
     if action == 0:
-        header = f"**Pi* -- FLAT [09:50]**"
+        header = f"**Pi* -- FLAT [{MAC_NAME}]**"
         lines  = [header, ts,
                   f"London  : {LC_LABELS[lc]}",
                   f"Pool    : {PC_LABELS[pc]}",
@@ -146,7 +177,7 @@ def build_message(action: int, direction: str, entry: float,
             lines.append(f"Raison  : {flat_reason}")
     else:
         arrow  = "[^]" if action == 1 else "[v]"
-        header = f"**Pi* -- {direction} {arrow} [09:50]**"
+        header = f"**Pi* -- {direction} {arrow} [{MAC_NAME}]**"
         lines  = [header, ts,
                   f"London  : {LC_LABELS[lc]}",
                   f"Pool    : {PC_LABELS[pc]}",
@@ -199,6 +230,11 @@ def main():
     today   = now_et.date()
     dow     = now_et.weekday()
 
+    # Verification que la macro est autorisee en live
+    if MAC_IDX not in LIVE_MACROS:
+        print(f"[live] mac_idx={MAC_IDX} non autorise (LIVE_MACROS={LIVE_MACROS}) -- exit.")
+        sys.exit(0)
+
     # Verification fenetre horaire
     if not (WINDOW_LOW <= hm_et <= WINDOW_HIGH):
         print(f"[live] Hors fenetre ({now_et.strftime('%H:%M')} ET) -- exit.")
@@ -208,17 +244,17 @@ def main():
         print(f"[live] Jour skippé (dow={dow}) -- exit.")
         mc = month_ctx(now_et.month)
         dc = day_ctx(dow)
-        msg = (f"**Pi* -- SKIP [09:50]**\n{now_et.strftime('%Y-%m-%d %H:%M ET')}\n"
+        msg = (f"**Pi* -- SKIP [{MAC_NAME}]**\n{now_et.strftime('%Y-%m-%d %H:%M ET')}\n"
                f"Lundi -- pas de trade live.")
         send_discord(msg)
         log_csv(today.isoformat(), {
-            "mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc,
+            "mac_idx": MAC_IDX, "mac_name": MAC_NAME, "mc": mc, "dc": dc,
             "lc": -1, "sc": -1, "pc": -1, "state": -1,
             "action": 0, "q_val": 0.0, "would_trade": False, "flat_reason": "skip_day",
         })
         sys.exit(0)
 
-    print(f"[live] {now_et.strftime('%Y-%m-%d %H:%M')} ET -- calcul signal Pi* 09:50...")
+    print(f"[live] {now_et.strftime('%Y-%m-%d %H:%M')} ET -- calcul signal Pi* {MAC_NAME}...")
 
     use_microstructure = _env_bool("USE_MICROSTRUCTURE", True)
     micro_ofi_threshold = float(os.environ.get("MICRO_OFI_THRESHOLD", "0.10"))
@@ -258,11 +294,11 @@ def main():
     sess_h = float(today_df["high"][sess_mask].max()) if sess_mask.any() else ldn_h
     sess_l = float(today_df["low"][sess_mask].min())  if sess_mask.any() else ldn_l
 
-    # Pre-macro 09:30-09:50
+    # Pre-macro (20 min avant la macro)
     pre_mask = (today_df["hm_et"] >= PRE_START) & (today_df["hm_et"] < MAC_START)
     pre_df   = today_df[pre_mask]
 
-    # Premiere bougie macro 09:50
+    # Premiere bougie macro
     first_df = today_df[today_df["hm_et"] == MAC_START]
 
     if len(pre_df) < 3 or first_df.empty:
@@ -285,7 +321,7 @@ def main():
         print("[live] No sweep detecte -- FLAT (aligned_only).")
         msg = build_message(0, "FLAT", 0, 0, 0, lc, 0, sc, 0.0, now_et, "no sweep")
         send_discord(msg)
-        log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": 0, "state": encode(mc, dc, lc, MAC_IDX, sc, 0), "action": 0, "q_val": 0.0, "would_trade": False, "flat_reason": "no_sweep"})
+        log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": MAC_NAME, "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": 0, "state": encode(mc, dc, lc, MAC_IDX, sc, 0), "action": 0, "q_val": 0.0, "would_trade": False, "flat_reason": "no_sweep"})
         sys.exit(0)
 
     # Reference BSL/SSL : 4h lookback avant pre-macro (05:30-09:30 ET)
@@ -303,7 +339,7 @@ def main():
         print(f"[live] Macro rule bloquee (mac={MAC_IDX}, lc={lc}, pc={pc}, sc={sc}) -- FLAT.")
         msg = build_message(0, "FLAT", 0, 0, 0, lc, pc, sc, 0.0, now_et, "macro rule")
         send_discord(msg)
-        log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": pc, "state": encode(mc, dc, lc, MAC_IDX, sc, pc), "action": 0, "q_val": 0.0, "would_trade": False, "flat_reason": "macro_rule"})
+        log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": MAC_NAME, "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": pc, "state": encode(mc, dc, lc, MAC_IDX, sc, pc), "action": 0, "q_val": 0.0, "would_trade": False, "flat_reason": "macro_rule"})
         sys.exit(0)
 
     state = encode(mc, dc, lc, MAC_IDX, sc, pc)
@@ -322,7 +358,7 @@ def main():
         print(f"[live] FLAT (Q={q_val*100:+.3f}%, action={action}) -- state={state}")
         msg = build_message(0, "FLAT", 0, 0, 0, lc, pc, sc, q_val, now_et, "Q <= threshold")
         send_discord(msg)
-        log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": pc, "state": state, "action": action, "q_val": q_val, "would_trade": False, "flat_reason": "q_flat"})
+        log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": MAC_NAME, "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": pc, "state": state, "action": action, "q_val": q_val, "would_trade": False, "flat_reason": "q_flat"})
         sys.exit(0)
 
     if use_microstructure:
@@ -334,7 +370,7 @@ def main():
             msg = build_message(0, "FLAT", 0, 0, 0, lc, pc, sc, q_val, now_et, "micro gate")
             send_discord(msg)
             log_csv(today.isoformat(), {
-                "mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc,
+                "mac_idx": MAC_IDX, "mac_name": MAC_NAME, "mc": mc, "dc": dc,
                 "lc": lc, "sc": sc, "pc": pc, "state": state,
                 "action": action, "q_val": q_val, "would_trade": False,
                 "flat_reason": "micro_gate",
@@ -382,10 +418,10 @@ def main():
         print("[live] TP <= SL apres calcul -- FLAT.")
         msg = build_message(0, "FLAT", 0, 0, 0, lc, pc, sc, q_val, now_et, "TP <= SL")
         send_discord(msg)
-        log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": pc, "state": state, "action": 0, "q_val": q_val, "would_trade": False, "flat_reason": "tp_le_sl"})
+        log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": MAC_NAME, "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": pc, "state": state, "action": 0, "q_val": q_val, "would_trade": False, "flat_reason": "tp_le_sl"})
         sys.exit(0)
 
-    log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": "09:50", "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": pc, "state": state, "action": action, "q_val": q_val, "would_trade": True, "flat_reason": "", "entry_px": round(entry_px, 2), "tp_px": round(tp_px, 2), "sl_px": round(sl_px, 2), "pnl": None, "exit_reason": "PENDING", "n_candles": 0})
+    log_csv(today.isoformat(), {"mac_idx": MAC_IDX, "mac_name": MAC_NAME, "mc": mc, "dc": dc, "lc": lc, "sc": sc, "pc": pc, "state": state, "action": action, "q_val": q_val, "would_trade": True, "flat_reason": "", "entry_px": round(entry_px, 2), "tp_px": round(tp_px, 2), "sl_px": round(sl_px, 2), "pnl": None, "exit_reason": "PENDING", "n_candles": 0})
 
     msg = build_message(action, direction, entry_px, tp_px, sl_px, lc, pc, sc, q_val, now_et)
     send_discord(msg)
