@@ -1,6 +1,6 @@
 # Pi* — Fichier de passation pour agent IA
 
-> Mis à jour le 2026-04-30. À lire en entier avant de toucher au code.
+> Mis à jour le 2026-05-02. À lire en entier avant de toucher au code.
 
 > **Fichier HTF separé : [HANDOFF_HTF.md](HANDOFF_HTF.md)**
 
@@ -9,10 +9,10 @@
 ## 1. Vue d'ensemble du projet
 
 **Pi*** est un agent de trading ICT (Inner Circle Trader) sur BTCUSDT Binance, 1-minute candles.
-- Données : Binance historique 2020-01-01 → aujourd'hui (3,3M bougies), stockées localement dans `data_binance/`
+- Données : Binance historique 2020-01-01 -> aujourd'hui (3,3M bougies), stockées localement dans `data_binance/`
 - Stratégie : Q-table empirique (pas de RL loop) — moyenne des P&L réels par état
 - Backtest : walk-forward 80% train / 20% test temporel
-- Live : pas encore déployé (Railway prévu)
+- Live : déployé sur Railway (API + scheduler + dashboards)
 
 **Résultats actuels (test set, config active) :**
 - WR : 84.6% | Return : +6.02% | Profit Factor : 5.99 | Sharpe : +1.699
@@ -273,8 +273,13 @@ Architecture déployée sur Railway — 3 services :
 - FEE=0.0005, SLIP=0.0002 inclus dans simulations shadow
 
 **Variables Railway requises :**
-- `DISCORD_WEBHOOK_URL` (tous les services cron + fallback Deribit)
-- `DISCORD_WEBHOOK_DERIBIT_URL` (optionnel — webhook dédié futures, recommandé)
+- `DISCORD_WEBHOOK_URL` (fallback global)
+- `DISCORD_WEBHOOK_DERIBIT_URL` (webhook dédié futures Deribit)
+- `DISCORD_WEBHOOK_DVOL_URL` (webhook dédié DVOL, fallback sur DERIBIT_URL puis WEBHOOK_URL)
+- `DISCORD_WEBHOOK_TA_URL` (webhook dédié signaux TA)
+- `DERIBIT_NOTIFY_ENABLED`, `DERIBIT_NOTIFY_MODE`, `DERIBIT_NOTIFY_TIMEFRAME`, `DERIBIT_NOTIFY_DAYS`, `DERIBIT_NOTIFY_MINUTE`
+- `TA_NOTIFY_ENABLED` (default true)
+- `APP_TYPE` (service dashboard Streamlit uniquement: `dashboard`)
 - `BINANCE_BASE_URL` (optionnel, defaut https://api.binance.com)
 
 ### P3 — Trailing stop (idée en attente)
@@ -463,6 +468,66 @@ Signal journalier → ~2500 jours d'historique BTC 2019-2026 → N beaucoup plus
 - Définir la granularité du signal (journalier ou hebdomadaire)
 
 Objectif : extraction de concepts ICT/edge testables, pas d'implémentation immédiate.
+
+### P10 — Stratégie TA (EN PRODUCTION PARTIELLE)
+
+Nouveau module isolé dans `strategies/ta/` (indépendant de `engine/` et `pi_config.py`).
+
+**Composants déployés :**
+- `strategies/ta/live_runner.py` : scan live Binance 15m, 108 combinaisons (EMA/RSI/Stoch/ATR)
+- `strategies/ta/discord_notify.py` : envoi Discord des signaux TA validés IS+OOS
+- `strategies/ta/signal_logger.py` : log CSV `db/ta_signals.csv` + résolution TP/SL + stats live
+- `strategies/ta/live_dashboard.py` : dashboard Streamlit live (chart + état + performances)
+- `strategies/ta/sweep_rolling.py` : revalidation glissante trimestrielle
+
+**Scheduler API (`api/app.py`) :**
+- Scan TA : toutes les 15 min, lun-ven, sessions UTC 07-11 et 13-17
+- Résolution trades TA : toutes les heures (`minute=5`)
+
+**Résultats IS/OOS avec feature regime :**
+- 2105 états valides IS
+- régime `range` fragile (majorité des cassures OOS)
+- logique live : exclusion des états `regime=range`
+
+### P11 — Détecteur DVOL (EN PRODUCTION)
+
+Nouveau détecteur de variation de volatilité implicite Deribit :
+- `data/deribit.py` : `fetch_dvol_history(...)`
+- `analysis/deribit_futures/dvol.py` : `detect_dvol_variation(...)`
+- `analysis/run_dvol_detector.py` : CLI + `--notify`
+
+**États DVOL :**
+- `VOL_SHOCK_UP`
+- `VOL_CRUSH_DOWN`
+- `NEUTRAL`
+
+**Sortie clé :**
+- `dvol_z`, `dvol_roc_24h`, `intensity`, `risk_regime` (RISK_OFF / RISK_ON / BALANCED)
+
+### P12 — Optimiseur vente d'options (NOUVEAU)
+
+Outil pour sélectionner les meilleures options à vendre selon DTE + strike + liquidité + risque :
+- `data/deribit.py` : `fetch_option_chain_snapshot(asset)`
+- `analysis/run_option_seller_optimizer.py`
+
+**Principe de scoring :**
+- DTE filter (ex: 20-45 jours, cible 30)
+- OTM minimum (ex: >= 3%)
+- liquidité min (`open_interest`, `volume_usd`)
+- probabilité OTM à maturité (approx Black-Scholes via IV)
+- score final `sell_score` (yield annualisé + prob_otm + OTM + liquidité + fit DTE)
+
+**Output :**
+- top candidates dans le terminal
+- CSV complet `db/options_sell_candidates.csv`
+
+### P13 — Tâches à faire (prochaine itération)
+
+1. Ajouter un mode profil de risque (`conservateur`, `équilibré`, `agressif`) dans l'optimiseur options
+2. Ajouter un trigger Discord automatique si `sell_score` dépasse un seuil
+3. Ajouter endpoint API pour stats TA live (`db/ta_signals.csv`) pour le frontend Next.js
+4. Ajouter un endpoint API pour DVOL (`/api/deribit/dvol`) avec cache 15 min
+5. Ajouter rétention/rotation de `db/ta_signals.csv` (éviter grossissement infini)
 
 ---
 
