@@ -7,3 +7,6 @@ python-dotenv==1.0.0
 fastapi==0.115.0
 uvicorn==0.30.0
 apscheduler==3.10.4
+# TA Live Dashboard (2ème service Railway)
+streamlit>=1.35.0
+plotly>=5.18.0

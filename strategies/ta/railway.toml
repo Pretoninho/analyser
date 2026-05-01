@@ -1,0 +1,22 @@
+# Railway — Service TA Live Dashboard (2ème service, même repo)
+#
+# Configuration pour le dashboard Streamlit TA.
+# Ce fichier est placé ici comme référence. Pour déployer sur Railway :
+#
+#   1. Dans ton projet Railway -> "Add Service" -> "GitHub Repo" (même repo)
+#   2. Settings -> Deploy -> Start Command :
+#      streamlit run strategies/ta/live_dashboard.py --server.port $PORT --server.headless true --server.enableCORS false
+#   3. Settings -> Deploy -> Health Check Path : /_stcore/health
+#   4. Variables d'environnement : aucune requise (API Binance publique)
+#
+# Le service lira les fichiers strategies/ta/results/*.csv du repo.
+# Si tu veux que les résultats de sweep soient persistants entre déploiements,
+# il faudra les committer dans le repo (ils le sont déjà via db/).
+
+[deploy]
+startCommand = "streamlit run strategies/ta/live_dashboard.py --server.port $PORT --server.headless true --server.enableCORS false"
+healthcheckPath = "/_stcore/health"
+restartPolicyType = "on_failure"
+
+[build]
+builder = "nixpacks"
