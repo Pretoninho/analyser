@@ -30,6 +30,17 @@ _INTERVAL_SECONDS = {
     "1h": 3600, "4h": 14400, "1d": 86400,
 }
 
+# get_volatility_index_data utilise une resolution en secondes
+# (ou "1D" pour daily), differente du format tradingview chart.
+DVOL_RESOLUTIONS = {
+    "1m": 60,
+    "5m": 300,
+    "15m": 900,
+    "1h": 3600,
+    "4h": 14400,
+    "1d": "1D",
+}
+
 
 def fetch_ohlcv(asset: str, timeframe: str = "1m", limit: int = 720) -> pd.DataFrame:
     instrument = DERIBIT_INSTRUMENTS.get(asset)
@@ -289,6 +300,96 @@ def fetch_open_interest(asset: str) -> pd.DataFrame:
 
     print(f"[deribit] OI {asset} : {oi:,.0f} BTC @ {pd.to_datetime(ts, unit='s', utc=True).strftime('%Y-%m-%d %H:%M')} UTC")
     return pd.DataFrame([{"ts": ts, "open_interest": oi}])
+
+
+def fetch_dvol_history(asset: str = "BTC", timeframe: str = "1h", days: int = 30) -> pd.DataFrame:
+    """
+    Recupere l'historique du DVOL (Deribit Volatility Index).
+
+    Args:
+        asset: "BTC" ou "ETH"
+        timeframe: "1m", "5m", "15m", "1h", "4h", "1d"
+        days: profondeur historique
+
+    Returns:
+        DataFrame avec colonnes: ts, dvol_open, dvol_high, dvol_low, dvol_close
+        (ts en secondes unix, tri ascendant)
+    """
+    currency = asset.upper()
+    resolution = DVOL_RESOLUTIONS.get(timeframe)
+    if resolution is None:
+        print(f"[deribit] Timeframe DVOL inconnu: {timeframe}")
+        return pd.DataFrame()
+
+    end_ts = int(time.time())
+    start_ts = end_ts - int(days * 86400)
+
+    url = f"{SOURCES['deribit_base_url']}/get_volatility_index_data"
+    params = {
+        "currency": currency,
+        "start_timestamp": start_ts * 1000,
+        "end_timestamp": end_ts * 1000,
+        "resolution": resolution,
+    }
+
+    try:
+        resp = requests.get(url, params=params, timeout=20)
+        resp.raise_for_status()
+        payload = resp.json()
+    except requests.RequestException as e:
+        print(f"[deribit] Erreur reseau DVOL: {e}")
+        return pd.DataFrame()
+
+    if "error" in payload:
+        print(f"[deribit] Erreur API DVOL: {payload['error']}")
+        return pd.DataFrame()
+
+    result = payload.get("result", {})
+    rows = result.get("data", []) if isinstance(result, dict) else []
+    if not rows:
+        print(f"[deribit] DVOL vide pour {currency}")
+        return pd.DataFrame()
+
+    parsed = []
+    for item in rows:
+        if not isinstance(item, (list, tuple)) or len(item) < 5:
+            continue
+        try:
+            ts_ms = int(item[0])
+            d_open = float(item[1])
+            d_high = float(item[2])
+            d_low = float(item[3])
+            d_close = float(item[4])
+        except (TypeError, ValueError):
+            continue
+
+        parsed.append(
+            {
+                "ts": ts_ms // 1000,
+                "dvol_open": d_open,
+                "dvol_high": d_high,
+                "dvol_low": d_low,
+                "dvol_close": d_close,
+            }
+        )
+
+    if not parsed:
+        print(f"[deribit] DVOL parse vide pour {currency}")
+        return pd.DataFrame()
+
+    df = pd.DataFrame(parsed).drop_duplicates("ts").sort_values("ts").reset_index(drop=True)
+    if len(df) > 1:
+        # Exclut la derniere bougie potentiellement incomplete
+        df = df.iloc[:-1].reset_index(drop=True)
+
+    if df.empty:
+        print(f"[deribit] DVOL apres nettoyage vide pour {currency}")
+        return df
+
+    first = pd.to_datetime(df["ts"].iloc[0], unit="s", utc=True).strftime("%Y-%m-%d %H:%M")
+    last = pd.to_datetime(df["ts"].iloc[-1], unit="s", utc=True).strftime("%Y-%m-%d %H:%M")
+    print(f"[deribit] DVOL {currency} {timeframe}: {len(df)} points {first} -> {last} UTC")
+    return df
 
 
 def _api_get(endpoint: str, params: dict, timeout: int = 15) -> dict:
