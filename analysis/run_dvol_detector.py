@@ -31,9 +31,15 @@ def main() -> None:
     print(msg)
 
     if args.notify:
-        webhook = os.environ.get("DISCORD_WEBHOOK_DERIBIT_URL", "") or os.environ.get("DISCORD_WEBHOOK_URL", "")
+        webhook = (
+            os.environ.get("DISCORD_WEBHOOK_DVOL_URL", "")
+            or os.environ.get("DISCORD_WEBHOOK_DERIBIT_URL", "")
+            or os.environ.get("DISCORD_WEBHOOK_URL", "")
+        )
         if not webhook:
-            raise RuntimeError("DISCORD_WEBHOOK_DERIBIT_URL or DISCORD_WEBHOOK_URL is not set.")
+            raise RuntimeError(
+                "DISCORD_WEBHOOK_DVOL_URL or DISCORD_WEBHOOK_DERIBIT_URL or DISCORD_WEBHOOK_URL is not set."
+            )
         resp = requests.post(webhook, json={"content": msg}, timeout=10)
         resp.raise_for_status()
         print("\nDiscord notification sent.")
