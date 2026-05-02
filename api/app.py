@@ -143,15 +143,16 @@ async def lifespan(app: FastAPI):
                 minute=deribit_minute,
             )
 
-    # TA strategy : scan toutes les 15 min pendant London (07-11 UTC) + NY (13-17 UTC)
-    ta_enabled = _env_bool("TA_NOTIFY_ENABLED", True)
+    # TA strategy v2 : scan toutes les 15 min pendant London (07-11 UTC) + NY (13-17 UTC)
+    # Utilise ensemble voting pour consensus sur signaux
+    ta_enabled = _env_bool("TA_NOTIFY_ENABLED_V2", True)
     if ta_enabled:
-        def _ta_notify_job():
+        def _ta_notify_job_v2():
             try:
-                from strategies.ta.discord_notify import run_and_notify
-                run_and_notify()
+                from strategies.ta.discord_notify_v2 import scan_and_notify_v2
+                scan_and_notify_v2()
             except Exception as e:
-                print(f"[scheduler] TA notify failed: {e}", flush=True)
+                print(f"[scheduler] TA notify v2 failed: {e}", flush=True)
 
         def _ta_resolve_job():
             try:
@@ -162,13 +163,13 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 print(f"[scheduler] TA resolve failed: {e}", flush=True)
 
-        scheduler.add_job(_ta_notify_job, "cron",
+        scheduler.add_job(_ta_notify_job_v2, "cron",
                           day_of_week="mon-fri", hour="7-10,13-16", minute="0,15,30,45")
         # Résolution toutes les heures 24/7 (les trades peuvent expirer la nuit)
         scheduler.add_job(_ta_resolve_job, "cron", minute=5)
 
     scheduler.start()
-    ta_status = "enabled" if ta_enabled else "disabled"
+    ta_status = "v2_enabled (ensemble voting)" if ta_enabled else "disabled"
     print(
         "[scheduler] APScheduler demarre "
         f"(live 09:51 mac=2, live 11:51 mac=4, shadow 16:05 ET, "
@@ -861,6 +862,72 @@ def discord_test():
     except Exception as e:
         raise HTTPException(502, f"Echec envoi Discord : {e}")
     return {"status": "sent", "timestamp": ts}
+
+
+@app.post("/api/ta/scan-v2")
+def ta_scan_v2():
+    """
+    Test endpoint : scan TA signaux avec ensemble voting v2.
+    Retourne les signaux détectés sans envoyer Discord.
+    """
+    try:
+        from strategies.ta.features import load_15m, compute_features
+        from strategies.ta.ensemble_voting_v2 import EnsembleVoterV2
+        from strategies.ta.config import RESULTS_DIR
+        from strategies.ta.live_runner_v2 import scan_signals
+
+        df15 = load_15m()
+        if len(df15) < 100:
+            raise HTTPException(400, "Donnees insuffisantes")
+
+        df15 = compute_features(
+            df15, ema_len=50, rsi_len=7,
+            stoch_k_period=5, stoch_smooth_k=3, stoch_d_period=3, atr_len=7
+        )
+
+        voter = EnsembleVoterV2(RESULTS_DIR, min_n_oos=5, min_wr_oos=0.60)
+        signals = scan_signals(df15, voter)
+
+        return {
+            "status": "scanned",
+            "n_signals": len(signals),
+            "signals": [
+                {
+                    "timestamp": sig["timestamp"].isoformat(),
+                    "direction": sig["direction"],
+                    "regime": sig["regime"],
+                    "entry_price": sig["entry_price"],
+                    "vote_favorable": sig["vote_favorable"],
+                    "vote_total": sig["vote_total"],
+                    "confidence": round(sig["confidence"], 3),
+                }
+                for sig in signals[:10]  # top 10
+            ],
+            "pool_size": voter.get_pool_stats()["total_configs"],
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"TA scan failed: {e}")
+
+
+@app.post("/api/ta/notify-v2")
+def ta_notify_v2():
+    """
+    Endpoint pour déclencher le scan TA v2 et envoyer Discord.
+    Utile pour tests manuels depuis Railway.
+    """
+    try:
+        from strategies.ta.discord_notify_v2 import scan_and_notify_v2
+        success = scan_and_notify_v2()
+        return {
+            "status": "executed",
+            "signal_sent": success,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(500, f"TA notify failed: {e}")
 
 
 @app.get("/health")
