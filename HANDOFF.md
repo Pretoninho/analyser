@@ -1,6 +1,6 @@
 # Pi* — Fichier de passation pour agent IA
 
-> Mis à jour le 2026-05-02. À lire en entier avant de toucher au code.
+> Mis à jour le 2026-05-03. À lire en entier avant de toucher au code.
 
 > **Fichier HTF separé : [HANDOFF_HTF.md](HANDOFF_HTF.md)**
 
@@ -504,7 +504,7 @@ Nouveau détecteur de variation de volatilité implicite Deribit :
 **Sortie clé :**
 - `dvol_z`, `dvol_roc_24h`, `intensity`, `risk_regime` (RISK_OFF / RISK_ON / BALANCED)
 
-### P12 — Optimiseur vente d'options (NOUVEAU)
+### P12 — Optimiseur vente d'options
 
 Outil pour sélectionner les meilleures options à vendre selon DTE + strike + liquidité + risque :
 - `data/deribit.py` : `fetch_option_chain_snapshot(asset)`
@@ -521,13 +521,57 @@ Outil pour sélectionner les meilleures options à vendre selon DTE + strike + l
 - top candidates dans le terminal
 - CSV complet `db/options_sell_candidates.csv`
 
-### P13 — Tâches à faire (prochaine itération)
+### P13 — Détecteur Fractal (EN PRODUCTION — 2026-05-03)
 
-1. Ajouter un mode profil de risque (`conservateur`, `équilibré`, `agressif`) dans l'optimiseur options
-2. Ajouter un trigger Discord automatique si `sell_score` dépasse un seuil
-3. Ajouter endpoint API pour stats TA live (`db/ta_signals.csv`) pour le frontend Next.js
-4. Ajouter un endpoint API pour DVOL (`/api/deribit/dvol`) avec cache 15 min
-5. Ajouter rétention/rotation de `db/ta_signals.csv` (éviter grossissement infini)
+Module complet de détection de patterns fractals ICT déployé sur Railway.
+
+**Architecture `strategies/fractal/` :**
+- 3 détecteurs par setup : `FractalDetectorStrict` (W+D+KZ+BR), `FractalDetectorModere` (D+KZ+BR), `FractalDetectorFrequent` (KZ+BR)
+- `FractalOrchestrator` : gestionnaire unifié + notifications Discord
+- `SignalDatabase` : logging PostgreSQL/SQLite des signaux détectés
+- `BinanceDataLoader` : récupération OHLCV 15m/daily/weekly
+
+**Intégration Frontend (`frontend/app/fractal/page.tsx`) :**
+- Page `/fractal` avec toggle STRICT/MODÉRÉ/FRÉQUENT
+- 3 composants React : `FractalSignalCard`, `FractalSetupToggle`, `FractalStats`
+- Affichage temps réel : timestamp, pattern (UP→DOWN/DOWN→UP), entry_price, confiance, zone (LKZ/NYKZ/LnCl)
+- Stat globales : total signaux, répartition par setup
+
+**API endpoints :**
+- `GET /api/fractal/strict` — signaux STRICT (confiance 94.6%)
+- `GET /api/fractal/modere` — signaux MODÉRÉ (confiance 91%)
+- `GET /api/fractal/frequent` — signaux FRÉQUENT (confiance 87.5%)
+- `GET /api/fractal/stats` — statistiques globales (total, by_setup, by_pattern)
+- `GET /api/fractal/health` — santé de l'orchestrator
+- `POST /api/fractal/discord/test` — test connexion webhook Discord
+
+**Variables d'environnement Railway :**
+- `DISCORD_WEBHOOK_FRACTAL` : webhook dédié signaux Fractal (fallback DISCORD_WEBHOOK)
+- `ACTIVE_SETUPS` : setups activés (STRICT,MODÉRÉ,FRÉQUENT)
+- `BINANCE_SYMBOL` : BTC/USDT
+- `DETECTION_INTERVAL` : intervalle détection (défaut 3600s)
+- `DB_TYPE` : sqlite (dev) ou postgresql (prod)
+
+**Données mockées :** Interface testée avec 25 signaux fictifs pour validation UI rapide. Vraies données chargées une fois Fractal en production.
+
+### P14 — Tâches à faire (prochaine itération)
+
+**Focus Fractal :**
+1. Lancer détection vraie Fractal sur Binance (charger historique + logs temps réel)
+2. Valider confiance % des setups sur historique walk-forward 80/20
+3. Ajouter filtrage par confiance min + zone killzone dans la UI
+4. Implémenter notification Discord automatique pour chaque signal détecté
+
+**Nouvelles paires de trading :**
+1. Analyser ETHUSDT 1m avec même architecture Pi* (Q-table, sweep_ctx, pool_ctx)
+2. Étendre Fractal à ETHUSDT + XRPUSDT
+3. Backtest cross-pair diversification (réduire sample path fragility)
+4. Implémenter portfolio management (allocation dynamique Fractal/TA/Pi*/Deribit)
+
+**Ordre de priorité :**
+1. Valider Fractal sur BTC live (détection/Discord) → **FRI 2026-05-09**
+2. Commencer analyse ETHUSDT statique → **MON 2026-05-12**
+3. Intégrer multi-pair au frontend → **WED 2026-05-14**
 
 ---
 
