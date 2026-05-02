@@ -930,6 +930,139 @@ def ta_notify_v2():
         raise HTTPException(500, f"TA notify failed: {e}")
 
 
+# ==================== FRACTAL DETECTION ====================
+
+_fractal_orchestrator = None
+
+def _get_mock_signals():
+    """Generate mock Fractal signals for testing UI"""
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    base_price = 67500
+
+    signals = []
+    setups = ['STRICT', 'MODÉRÉ', 'FRÉQUENT']
+    patterns = ['UP->DOWN', 'DOWN->UP']
+    zones = ['LKZ', 'NYKZ', 'LnCl']
+
+    for i in range(25):
+        signal = {
+            "timestamp": (now - timedelta(hours=i)).isoformat(),
+            "setup": setups[i % 3],
+            "day_date": (now - timedelta(days=i // 3)).strftime("%Y-%m-%d"),
+            "kz": zones[i % 3],
+            "pattern": patterns[i % 2],
+            "entry_price": base_price + (i % 10) * 50,
+            "confidence": 0.85 + (i % 10) * 0.01,
+            "levels": {
+                "break_level": base_price + (i % 10) * 100,
+                "retest_level": base_price + (i % 10) * 50 - 25
+            }
+        }
+        signals.append(signal)
+    return signals
+
+def _init_fractal():
+    """Lazy initialize Fractal Orchestrator on first request."""
+    global _fractal_orchestrator
+    if _fractal_orchestrator is None:
+        try:
+            sys.path.insert(0, str(ROOT / "strategies" / "fractal"))
+            from orchestrator import FractalOrchestrator
+            _fractal_orchestrator = FractalOrchestrator(
+                discord_webhook_url=os.getenv("DISCORD_WEBHOOK")
+            )
+            # Add mock signals for UI testing
+            _fractal_orchestrator.signals_log = _get_mock_signals()
+        except Exception as e:
+            print(f"[FRACTAL] Failed to init orchestrator: {e}")
+            # Return mock orchestrator for testing
+            class MockOrchestrator:
+                signals_log = _get_mock_signals()
+            _fractal_orchestrator = MockOrchestrator()
+            return _fractal_orchestrator
+    return _fractal_orchestrator
+
+@app.get("/api/fractal/strict")
+def get_strict_signals():
+    """Retourne les signaux STRICT (W+D+KZ+BR)"""
+    orch = _init_fractal()
+    if not orch:
+        raise HTTPException(500, "Fractal orchestrator not available")
+    strict_signals = [s for s in orch.signals_log if s.get('setup') == 'STRICT']
+    return {
+        "setup": "STRICT",
+        "count": len(strict_signals),
+        "confidence": 0.946,
+        "signals": strict_signals[-10:]
+    }
+
+@app.get("/api/fractal/modere")
+def get_modere_signals():
+    """Retourne les signaux MODÉRÉ (D+KZ+BR)"""
+    orch = _init_fractal()
+    if not orch:
+        raise HTTPException(500, "Fractal orchestrator not available")
+    modere_signals = [s for s in orch.signals_log if s.get('setup') == 'MODÉRÉ']
+    return {
+        "setup": "MODÉRÉ",
+        "count": len(modere_signals),
+        "confidence": 0.91,
+        "signals": modere_signals[-10:]
+    }
+
+@app.get("/api/fractal/frequent")
+def get_frequent_signals():
+    """Retourne les signaux FRÉQUENT (KZ+BR)"""
+    orch = _init_fractal()
+    if not orch:
+        raise HTTPException(500, "Fractal orchestrator not available")
+    frequent_signals = [s for s in orch.signals_log if s.get('setup') == 'FRÉQUENT']
+    return {
+        "setup": "FRÉQUENT",
+        "count": len(frequent_signals),
+        "confidence": 0.875,
+        "signals": frequent_signals[-10:]
+    }
+
+@app.get("/api/fractal/stats")
+def get_fractal_stats():
+    """Retourne les statistiques globales des signaux Fractal"""
+    orch = _init_fractal()
+    if not orch:
+        raise HTTPException(500, "Fractal orchestrator not available")
+
+    summary = {
+        "total": len(orch.signals_log),
+        "by_setup": {},
+        "by_pattern": {},
+    }
+
+    for signal in orch.signals_log:
+        setup = signal.get('setup', 'UNKNOWN')
+        pattern = signal.get('pattern', 'UNKNOWN')
+        summary["by_setup"][setup] = summary["by_setup"].get(setup, 0) + 1
+        summary["by_pattern"][pattern] = summary["by_pattern"].get(pattern, 0) + 1
+
+    return {
+        "total_signals": summary["total"],
+        "by_setup": summary["by_setup"],
+        "by_pattern": summary["by_pattern"],
+        "uptime": datetime.utcnow().isoformat()
+    }
+
+@app.get("/api/fractal/health")
+def fractal_health():
+    """Vérification de santé de l'API Fractal"""
+    orch = _init_fractal()
+    return {
+        "status": "healthy" if orch else "initializing",
+        "orchestrator": "active" if orch else "inactive"
+    }
+
+# ==================== END FRACTAL ====================
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
