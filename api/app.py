@@ -1060,24 +1060,6 @@ def fractal_health():
         "orchestrator": "active" if orch else "inactive"
     }
 
-@app.post("/api/fractal/config")
-def update_fractal_config(
-    active_setups: list = None,
-    discord_webhook: str = None,
-    min_confidence: float = None
-):
-    """Configure les paramètres de détection Fractal"""
-    config = {
-        "active_setups": active_setups or ["STRICT", "MODÉRÉ", "FRÉQUENT"],
-        "discord_webhook": discord_webhook or os.getenv("DISCORD_WEBHOOK"),
-        "min_confidence": min_confidence or 0.85
-    }
-    return {
-        "status": "configured",
-        "config": config,
-        "message": "Configuration Fractal mise à jour"
-    }
-
 @app.post("/api/fractal/discord/test")
 def test_fractal_discord():
     """Test la connexion Discord"""
