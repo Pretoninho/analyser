@@ -969,9 +969,8 @@ def _init_fractal():
         try:
             sys.path.insert(0, str(ROOT / "strategies" / "fractal"))
             from orchestrator import FractalOrchestrator
-            _fractal_orchestrator = FractalOrchestrator(
-                discord_webhook_url=os.getenv("DISCORD_WEBHOOK")
-            )
+            webhook = os.getenv("DISCORD_WEBHOOK_FRACTAL") or os.getenv("DISCORD_WEBHOOK")
+            _fractal_orchestrator = FractalOrchestrator(discord_webhook_url=webhook)
             # Add mock signals for UI testing
             _fractal_orchestrator.signals_log = _get_mock_signals()
         except Exception as e:
@@ -1063,9 +1062,9 @@ def fractal_health():
 @app.post("/api/fractal/discord/test")
 def test_fractal_discord():
     """Test la connexion Discord"""
-    webhook = os.getenv("DISCORD_WEBHOOK")
+    webhook = os.getenv("DISCORD_WEBHOOK_FRACTAL") or os.getenv("DISCORD_WEBHOOK")
     if not webhook:
-        raise HTTPException(503, "DISCORD_WEBHOOK non configuré")
+        raise HTTPException(503, "DISCORD_WEBHOOK_FRACTAL ou DISCORD_WEBHOOK non configuré")
 
     try:
         import requests
