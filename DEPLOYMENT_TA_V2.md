@@ -15,6 +15,7 @@
 
 **`api/app.py`** :
 - Remplacé ancien scheduler TA → nouveau avec `discord_notify_v2.py`
+- **Scheduler TA v2 24/7 (sans restriction weekend)** — sessions London (07-10 UTC) + NY (13-16 UTC)
 - Ajouté endpoints test :
   - `POST /api/ta/scan-v2` — scan sans Discord (test rapide)
   - `POST /api/ta/notify-v2` — scan + Discord (test complet)

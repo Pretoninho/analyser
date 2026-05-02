@@ -164,7 +164,7 @@ async def lifespan(app: FastAPI):
                 print(f"[scheduler] TA resolve failed: {e}", flush=True)
 
         scheduler.add_job(_ta_notify_job_v2, "cron",
-                          day_of_week="mon-fri", hour="7-10,13-16", minute="0,15,30,45")
+                          hour="7-10,13-16", minute="0,15,30,45")
         # Résolution toutes les heures 24/7 (les trades peuvent expirer la nuit)
         scheduler.add_job(_ta_resolve_job, "cron", minute=5)
 
