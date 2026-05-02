@@ -159,3 +159,48 @@ export async function notifyDeribitSignal(timeframe = "1h", days = 90) {
     timestamp: string
   }>
 }
+
+export type FractalSignal = {
+  timestamp: string
+  setup: string
+  day_date: string
+  kz: string
+  pattern: string
+  entry_price: number
+  confidence: number
+  levels: Record<string, number>
+}
+
+export type FractalSetupResponse = {
+  setup: string
+  count: number
+  confidence: number
+  signals: FractalSignal[]
+}
+
+export async function fetchFractalSignals(setup: "strict" | "modere" | "frequent") {
+  const res = await fetch(apiUrl(`/api/fractal/${setup}`), { cache: "no-store" })
+  if (!res.ok) throw new Error(`fractal/${setup}: ${res.status}`)
+  return res.json() as Promise<FractalSetupResponse>
+}
+
+export async function fetchFractalStats() {
+  const res = await fetch(apiUrl("/api/fractal/stats"), { cache: "no-store" })
+  if (!res.ok) throw new Error(`fractal/stats: ${res.status}`)
+  return res.json() as Promise<{
+    total_signals: number
+    by_setup: Record<string, number>
+    by_pattern: Record<string, number>
+    uptime: string
+  }>
+}
+
+export async function fetchFractalHealth() {
+  const res = await fetch(apiUrl("/api/fractal/health"), { cache: "no-store" })
+  if (!res.ok) throw new Error(`fractal/health: ${res.status}`)
+  return res.json() as Promise<{
+    status: string
+    orchestrator: string
+    config: Record<string, unknown>
+  }>
+}

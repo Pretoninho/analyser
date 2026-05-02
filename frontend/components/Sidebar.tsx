@@ -6,6 +6,7 @@ const links = [
   { href: "/daily",       label: "Rapport journalier" },
   { href: "/pipeline",    label: "Pipeline" },
   { href: "/deribit",     label: "Deribit Signals" },
+  { href: "/fractal",     label: "Fractal Detection" },
   { href: "/trades",      label: "Trades" },
   { href: "/performance", label: "Performance" },
   { href: "/qtable",      label: "Q-Table" },
