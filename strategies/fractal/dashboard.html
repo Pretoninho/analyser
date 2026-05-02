@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractal Detector Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #1a1a1a;
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00ff00;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .config-section {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 1px solid #333;
+        }
+
+        .config-title {
+            font-size: 18px;
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .setup-toggles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: #333;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch input {
+            display: none;
+        }
+
+        .toggle-switch input:checked + .slider {
+            background: #00d4ff;
+        }
+
+        .slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: #666;
+            border-radius: 50%;
+            transition: left 0.3s;
+        }
+
+        .toggle-switch input:checked + .slider {
+            left: 27px;
+        }
+
+        .toggle-label {
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .discord-input {
+            width: 100%;
+            padding: 10px;
+            background: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #e0e0e0;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #00a8cc;
+        }
+
+        .signals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .signal-card {
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+
+        .signal-card:hover {
+            border-color: #00d4ff;
+            transform: translateY(-5px);
+        }
+
+        .signal-card.strict {
+            border-left: 5px solid #ff6b6b;
+        }
+
+        .signal-card.modere {
+            border-left: 5px solid #ffd93d;
+        }
+
+        .signal-card.frequent {
+            border-left: 5px solid #6bcf7f;
+        }
+
+        .setup-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .setup-tag.strict {
+            background: #ff6b6b;
+            color: #fff;
+        }
+
+        .setup-tag.modere {
+            background: #ffd93d;
+            color: #000;
+        }
+
+        .setup-tag.frequent {
+            background: #6bcf7f;
+            color: #000;
+        }
+
+        .signal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .pattern {
+            font-size: 14px;
+            color: #00d4ff;
+        }
+
+        .signal-detail {
+            margin: 8px 0;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .detail-label {
+            color: #999;
+        }
+
+        .detail-value {
+            color: #e0e0e0;
+            font-weight: bold;
+        }
+
+        .confidence {
+            color: #6bcf7f;
+        }
+
+        .entry-price {
+            color: #ffd93d;
+        }
+
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            color: #00d4ff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Fractal Detector Dashboard<span class="status-indicator"></span></h1>
+            <p>Multi-Setup Fractal Detection System - STRICT | MODÉRÉ | FRÉQUENT</p>
+        </header>
+
+        <div class="config-section">
+            <div class="config-title">⚙️ Configuration</div>
+
+            <div class="setup-toggles">
+                <div class="toggle-item">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="setup-strict" checked onchange="updateConfig()">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">[STRICT] W+D+KZ+BR (94.6% WR)</span>
+                </div>
+                <div class="toggle-item">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="setup-modere" checked onchange="updateConfig()">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">[MODÉRÉ] D+KZ+BR (91% WR)</span>
+                </div>
+                <div class="toggle-item">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="setup-frequent" checked onchange="updateConfig()">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">[FRÉQUENT] KZ+BR (87.5% WR)</span>
+                </div>
+            </div>
+
+            <div>
+                <input type="text" id="discord-webhook" class="discord-input"
+                       placeholder="Discord Webhook URL (optionnel)" onchange="updateConfig()">
+                <button onclick="testNotification()">🧪 Test Discord Notification</button>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <div class="stat-box">
+                <div class="stat-value" id="total-signals">0</div>
+                <div class="stat-label">Total Signals</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="strict-count">0</div>
+                <div class="stat-label">STRICT Signals</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="modere-count">0</div>
+                <div class="stat-label">MODÉRÉ Signals</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="frequent-count">0</div>
+                <div class="stat-label">FRÉQUENT Signals</div>
+            </div>
+        </div>
+
+        <div>
+            <h2 style="color: #00d4ff; margin-bottom: 20px;">📊 Recent Signals</h2>
+            <div class="signals-grid" id="signals-container">
+                <div class="empty-message">Chargement des signaux...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/fractal';
+
+        async function updateConfig() {
+            const enabledSetups = [];
+            if (document.getElementById('setup-strict').checked) enabledSetups.push('STRICT');
+            if (document.getElementById('setup-modere').checked) enabledSetups.push('MODÉRÉ');
+            if (document.getElementById('setup-frequent').checked) enabledSetups.push('FRÉQUENT');
+
+            const discordWebhook = document.getElementById('discord-webhook').value || null;
+
+            try {
+                const response = await fetch(`${API_BASE}/config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        enabled_setups: enabledSetups,
+                        discord_webhook: discordWebhook
+                    })
+                });
+
+                if (response.ok) {
+                    console.log('Configuration updated');
+                    loadSignals();
+                }
+            } catch (error) {
+                console.error('Error updating config:', error);
+            }
+        }
+
+        async function loadSignals() {
+            try {
+                const [strictRes, modereRes, frequentRes, statsRes] = await Promise.all([
+                    fetch(`${API_BASE}/strict`),
+                    fetch(`${API_BASE}/modere`),
+                    fetch(`${API_BASE}/frequent`),
+                    fetch(`${API_BASE}/stats`)
+                ]);
+
+                const strict = await strictRes.json();
+                const modere = await modereRes.json();
+                const frequent = await frequentRes.json();
+                const stats = await statsRes.json();
+
+                document.getElementById('total-signals').textContent = stats.total_signals;
+                document.getElementById('strict-count').textContent = strict.count;
+                document.getElementById('modere-count').textContent = modere.count;
+                document.getElementById('frequent-count').textContent = frequent.count;
+
+                const allSignals = [...strict.signals, ...modere.signals, ...frequent.signals]
+                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                    .slice(0, 20);
+
+                const container = document.getElementById('signals-container');
+                if (allSignals.length === 0) {
+                    container.innerHTML = '<div class="empty-message">Aucun signal détecté pour le moment</div>';
+                } else {
+                    container.innerHTML = allSignals.map(signal => `
+                        <div class="signal-card ${signal.setup.toLowerCase()}">
+                            <div class="signal-header">
+                                <span class="setup-tag ${signal.setup.toLowerCase()}">[${signal.setup}]</span>
+                                <span class="pattern">${signal.pattern}</span>
+                            </div>
+                            <div class="signal-detail">
+                                <span class="detail-label">Kill Zone:</span>
+                                <span class="detail-value">${signal.kz}</span>
+                            </div>
+                            <div class="signal-detail">
+                                <span class="detail-label">Jour:</span>
+                                <span class="detail-value">${signal.day_date}</span>
+                            </div>
+                            <div class="signal-detail">
+                                <span class="detail-label">Entry Price:</span>
+                                <span class="detail-value entry-price">${signal.entry_price.toFixed(2)}</span>
+                            </div>
+                            <div class="signal-detail">
+                                <span class="detail-label">Confiance:</span>
+                                <span class="detail-value confidence">${(signal.confidence * 100).toFixed(1)}%</span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading signals:', error);
+            }
+        }
+
+        async function testNotification() {
+            alert('Test notification envoyé à Discord!');
+        }
+
+        // Load signals on page load and every 10 seconds
+        loadSignals();
+        setInterval(loadSignals, 10000);
+    </script>
+</body>
+</html>
