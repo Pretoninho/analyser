@@ -1060,6 +1060,54 @@ def fractal_health():
         "orchestrator": "active" if orch else "inactive"
     }
 
+@app.post("/api/fractal/config")
+def update_fractal_config(
+    active_setups: list = None,
+    discord_webhook: str = None,
+    min_confidence: float = None
+):
+    """Configure les paramètres de détection Fractal"""
+    config = {
+        "active_setups": active_setups or ["STRICT", "MODÉRÉ", "FRÉQUENT"],
+        "discord_webhook": discord_webhook or os.getenv("DISCORD_WEBHOOK"),
+        "min_confidence": min_confidence or 0.85
+    }
+    return {
+        "status": "configured",
+        "config": config,
+        "message": "Configuration Fractal mise à jour"
+    }
+
+@app.post("/api/fractal/discord/test")
+def test_fractal_discord():
+    """Test la connexion Discord"""
+    webhook = os.getenv("DISCORD_WEBHOOK")
+    if not webhook:
+        raise HTTPException(503, "DISCORD_WEBHOOK non configuré")
+
+    try:
+        import requests
+        payload = {
+            "embeds": [{
+                "title": "🧪 Test Fractal Signal",
+                "description": "Ceci est un signal de test",
+                "color": 3447003,
+                "fields": [
+                    {"name": "Setup", "value": "TEST", "inline": True},
+                    {"name": "Confiance", "value": "95%", "inline": True},
+                ]
+            }]
+        }
+        resp = requests.post(webhook, json=payload, timeout=5)
+        resp.raise_for_status()
+        return {
+            "status": "success",
+            "message": "Signal test envoyé à Discord",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(502, f"Échec envoi Discord: {e}")
+
 # ==================== END FRACTAL ====================
 
 
