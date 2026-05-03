@@ -71,7 +71,7 @@ def fetch_klines(interval: str, limit: int) -> pd.DataFrame:
     url  = f"{base}/api/v3/klines"
     resp = requests.get(
         url,
-        params={"symbol": os.environ.get("TRADING_SYMBOL", "BTCUSDT").upper(), "interval": interval, "limit": limit},
+        params={"symbol": os.environ.get("BINANCE_SYMBOL", "BTCUSDT").upper(), "interval": interval, "limit": limit},
         timeout=15,
     )
     resp.raise_for_status()

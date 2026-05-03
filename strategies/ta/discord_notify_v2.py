@@ -23,12 +23,13 @@ _DIR_EMOJI = {"LONG": "🟢", "SHORT": "🔴"}
 _REGIME_EMOJI = {"bull": "🐂", "bear": "🐻", "range": "↔️"}
 
 
-def _format_message_v2(signals: list) -> str:
+def _format_message_v2(signals: list, symbol: str = "BTCUSDT") -> str:
     """Formate message Discord pour signaux avec voting."""
     if not signals:
         return None
 
     sig = signals[0]  # premier signal (récent)
+    pair = f"{symbol[:3]}/USDT"
 
     dir_emoji = _DIR_EMOJI.get(sig["direction"], "")
     regime_emoji = _REGIME_EMOJI.get(sig["regime"], "")
@@ -40,7 +41,7 @@ def _format_message_v2(signals: list) -> str:
     ts = sig.get("timestamp", datetime.utcnow()).isoformat()[:16].replace("T", " ")
 
     lines = [
-        f"## {dir_emoji} TA Signal v2 — **{sig['direction']}** {symbol[:3]}/USDT 15m",
+        f"## {dir_emoji} TA Signal v2 — **{sig['direction']}** {pair} 15m",
         f"`{ts} UTC` — Entry: **${entry_px:,.2f}**",
         f"Régime: {regime_emoji} **{sig['regime'].upper()}**",
         "",
@@ -55,10 +56,8 @@ def _format_message_v2(signals: list) -> str:
 
 
 def scan_and_notify_v2(symbol: str = None) -> bool:
-    symbol = symbol or os.environ.get("TRADING_SYMBOL", "BTCUSDT").upper()
-    """
-    Lance le scan TA v2 avec ensemble voting et envoie Discord si signaux.
-    """
+    """Lance le scan TA v2 avec ensemble voting et envoie Discord si signaux."""
+    symbol = symbol or os.environ.get("BINANCE_SYMBOL", "BTCUSDT").upper()
     webhook_url = os.environ.get(WEBHOOK_ENV, "")
     if not webhook_url:
         print(f"[ta_notify_v2] Skipped — {WEBHOOK_ENV} not set", flush=True)
@@ -94,7 +93,7 @@ def scan_and_notify_v2(symbol: str = None) -> bool:
         print(f"[ta_notify_v2] Found {len(signals)} signal(s) with consensus", flush=True)
 
         # Format et envoyer
-        msg = _format_message_v2(signals)
+        msg = _format_message_v2(signals, symbol)
         if not msg:
             return False
 

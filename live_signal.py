@@ -96,7 +96,7 @@ def _env_bool(name: str, default: bool) -> bool:
 def fetch_klines(interval: str, limit: int) -> pd.DataFrame:
     base = os.environ.get("BINANCE_BASE_URL", "https://api.binance.com")
     url  = f"{base}/api/v3/klines"
-    symbol = os.environ.get("TRADING_SYMBOL", "BTCUSDT").upper()
+    symbol = os.environ.get("BINANCE_SYMBOL", "BTCUSDT").upper()
     resp = requests.get(url, params={"symbol": symbol, "interval": interval, "limit": limit}, timeout=15)
     resp.raise_for_status()
     cols = ["open_time", "open", "high", "low", "close", "volume",

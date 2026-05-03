@@ -23,7 +23,7 @@ BINANCE_DIR = Path(__file__).parent.parent / "data_binance"
 
 # ── Constantes Binance ─────────────────────────────────────────
 _BASE_URL = "https://data.binance.vision/data/futures/um/monthly/klines"
-_SYMBOL   = os.getenv("TRADING_SYMBOL", "BTCUSDT").upper()
+_SYMBOL   = os.getenv("BINANCE_SYMBOL", "BTCUSDT").upper()
 _INTERVAL = "1m"
 
 PARQUET_PATH = BINANCE_DIR / f"{_SYMBOL.lower()}_1m.parquet"

@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT        = Path(__file__).resolve().parents[2]
 DATA_DIR    = ROOT / "data_binance" / "raw"
 RESULTS_DIR = ROOT / "strategies" / "ta" / "results"
-SYMBOL      = os.getenv("TRADING_SYMBOL", "BTCUSDT").upper()
+SYMBOL      = os.getenv("BINANCE_SYMBOL", "BTCUSDT").upper()
 
 # ── Espace paramétrique — sweep exhaustif ────────────────────────────────────
 # EMA appliqué sur les bougies 4H (biais directionnel)
