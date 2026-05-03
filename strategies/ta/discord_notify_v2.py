@@ -40,7 +40,7 @@ def _format_message_v2(signals: list) -> str:
     ts = sig.get("timestamp", datetime.utcnow()).isoformat()[:16].replace("T", " ")
 
     lines = [
-        f"## {dir_emoji} TA Signal v2 — **{sig['direction']}** BTC/USDT 15m",
+        f"## {dir_emoji} TA Signal v2 — **{sig['direction']}** {symbol[:3]}/USDT 15m",
         f"`{ts} UTC` — Entry: **${entry_px:,.2f}**",
         f"Régime: {regime_emoji} **{sig['regime'].upper()}**",
         "",
@@ -54,7 +54,8 @@ def _format_message_v2(signals: list) -> str:
     return "\n".join(lines)
 
 
-def scan_and_notify_v2(symbol: str = "BTCUSDT") -> bool:
+def scan_and_notify_v2(symbol: str = None) -> bool:
+    symbol = symbol or os.environ.get("TRADING_SYMBOL", "BTCUSDT").upper()
     """
     Lance le scan TA v2 avec ensemble voting et envoie Discord si signaux.
     """

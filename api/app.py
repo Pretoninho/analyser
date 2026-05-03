@@ -261,7 +261,7 @@ def fetch_binance_candles(date_et: date, mac_idx: int) -> list:
     resp = requests.get(
         f"{base}/api/v3/klines",
         params={
-            "symbol":    "BTCUSDT",
+            "symbol":    os.environ.get("TRADING_SYMBOL", "BTCUSDT").upper(),
             "interval":  "1m",
             "startTime": ts_from_ms,
             "limit":     165,   # 45 + 120 = 165 bougies

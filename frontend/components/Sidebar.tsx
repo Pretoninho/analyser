@@ -22,7 +22,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-2 mb-8">
         <span className="mono text-sm font-medium text-white tracking-wider">Pi*</span>
-        <span className="ml-2 text-[10px] text-slate-500 uppercase tracking-widest">BTCUSDT</span>
+        <span className="ml-2 text-[10px] text-slate-500 uppercase tracking-widest">{process.env.NEXT_PUBLIC_TRADING_SYMBOL || "BTCUSDT"}</span>
       </div>
 
       {/* Nav */}
