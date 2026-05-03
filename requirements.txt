@@ -13,4 +13,4 @@ plotly>=5.18.0
 # Fractal Detection endpoints
 pydantic==2.5.0
 aiohttp==3.9.1
-ccxt==4.0.11
+ccxt>=4.0.11
