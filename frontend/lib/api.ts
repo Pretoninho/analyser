@@ -173,19 +173,22 @@ export type FractalSignal = {
 
 export type FractalSetupResponse = {
   setup: string
+  symbol: string
   count: number
   confidence: number
   signals: FractalSignal[]
 }
 
-export async function fetchFractalSignals(setup: "strict" | "modere" | "frequent") {
-  const res = await fetch(apiUrl(`/api/fractal/${setup}`), { cache: "no-store" })
+export async function fetchFractalSignals(setup: "strict" | "modere" | "frequent", symbol?: string) {
+  const q = symbol ? `?symbol=${symbol}` : ""
+  const res = await fetch(apiUrl(`/api/fractal/${setup}${q}`), { cache: "no-store" })
   if (!res.ok) throw new Error(`fractal/${setup}: ${res.status}`)
   return res.json() as Promise<FractalSetupResponse>
 }
 
-export async function fetchFractalStats() {
-  const res = await fetch(apiUrl("/api/fractal/stats"), { cache: "no-store" })
+export async function fetchFractalStats(symbol?: string) {
+  const q = symbol ? `?symbol=${symbol}` : ""
+  const res = await fetch(apiUrl(`/api/fractal/stats${q}`), { cache: "no-store" })
   if (!res.ok) throw new Error(`fractal/stats: ${res.status}`)
   return res.json() as Promise<{
     total_signals: number
@@ -201,6 +204,7 @@ export async function fetchFractalHealth() {
   return res.json() as Promise<{
     status: string
     orchestrator: string
-    config: Record<string, unknown>
+    symbol: string
+    available_symbols: string[]
   }>
 }

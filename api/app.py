@@ -168,18 +168,20 @@ async def lifespan(app: FastAPI):
         # Résolution toutes les heures 24/7 (les trades peuvent expirer la nuit)
         scheduler.add_job(_ta_resolve_job, "cron", minute=5)
 
-    # Fractal detection : toutes les heures, 24/7
+    # Fractal detection : toutes les heures, 24/7 — un job par paire
     fractal_enabled = _env_bool("FRACTAL_ENABLED", True)
     fractal_interval = int(os.getenv("FRACTAL_INTERVAL_HOURS", "1"))
     if fractal_enabled:
-        _init_fractal()  # init au démarrage
-        scheduler.add_job(_fractal_detect_job, "cron", hour=f"*/{fractal_interval}", minute=0)
-        # Premier scan immédiat au démarrage
-        scheduler.add_job(_fractal_detect_job, "date")
+        for _sym in _fractal_symbols():
+            _init_fractal(_sym)
+            scheduler.add_job(lambda s=_sym: _fractal_detect_job(s), "cron",
+                              hour=f"*/{fractal_interval}", minute=0)
+            scheduler.add_job(lambda s=_sym: _fractal_detect_job(s), "date")
 
     scheduler.start()
     ta_status = "v2_enabled (ensemble voting)" if ta_enabled else "disabled"
-    fractal_status = f"enabled (every {fractal_interval}h)" if fractal_enabled else "disabled"
+    fractal_pairs = ",".join(_fractal_symbols()) if fractal_enabled else "disabled"
+    fractal_status = f"enabled (every {fractal_interval}h, pairs={fractal_pairs})" if fractal_enabled else "disabled"
     print(
         "[scheduler] APScheduler demarre "
         f"(live 09:51 mac=2, live 11:51 mac=4, shadow 16:05 ET, "
@@ -942,40 +944,52 @@ def ta_notify_v2():
 
 # ==================== FRACTAL DETECTION ====================
 
-_fractal_orchestrator = None
+# ── Fractal: un orchestrator par paire ─────────────────────────
+# BINANCE_SYMBOL peut contenir plusieurs paires: "BTCUSDT,ETHUSDT"
+_fractal_orchestrators: dict = {}  # {symbol: FractalOrchestrator}
 
-def _init_fractal():
-    """Initialize Fractal Orchestrator (called at startup and by scheduler)."""
-    global _fractal_orchestrator
-    if _fractal_orchestrator is None:
+def _fractal_symbols() -> list[str]:
+    raw = os.getenv("BINANCE_SYMBOL", "BTCUSDT")
+    return [s.strip().upper() for s in raw.split(",") if s.strip()]
+
+def _to_ccxt_symbol(symbol: str) -> str:
+    """BTCUSDT → BTC/USDT"""
+    if "/" in symbol:
+        return symbol
+    return symbol.replace("USDT", "/USDT")
+
+def _init_fractal(symbol: str):
+    """Initialize Fractal Orchestrator for a given symbol."""
+    symbol = symbol.upper()
+    if symbol not in _fractal_orchestrators:
         try:
             sys.path.insert(0, str(ROOT / "strategies" / "fractal"))
             from orchestrator import FractalOrchestrator
             webhook = os.getenv("DISCORD_WEBHOOK_FRACTAL") or os.getenv("DISCORD_WEBHOOK")
-            _fractal_orchestrator = FractalOrchestrator(discord_webhook_url=webhook)
+            _fractal_orchestrators[symbol] = FractalOrchestrator(discord_webhook_url=webhook)
+            print(f"[FRACTAL] Orchestrator initialized for {symbol}", flush=True)
         except Exception as e:
-            print(f"[FRACTAL] Failed to init orchestrator: {e}", flush=True)
+            print(f"[FRACTAL] Failed to init orchestrator for {symbol}: {e}", flush=True)
             return None
-    return _fractal_orchestrator
+    return _fractal_orchestrators.get(symbol)
 
 
-def _fractal_detect_job():
-    """Job scheduler: charge Binance et détecte les fractales."""
+def _fractal_detect_job(symbol: str):
+    """Job scheduler: charge Binance et détecte les fractales pour un symbole."""
     try:
         sys.path.insert(0, str(ROOT / "strategies" / "fractal"))
         from main import BinanceDataLoader
 
-        orch = _init_fractal()
+        orch = _init_fractal(symbol)
         if not orch:
-            print("[FRACTAL] Orchestrator not available, skipping detection", flush=True)
+            print(f"[FRACTAL] Orchestrator not available for {symbol}, skipping", flush=True)
             return
 
-        symbol = os.getenv("BINANCE_SYMBOL", "BTC/USDT")
-        loader = BinanceDataLoader(symbol=symbol)
+        loader = BinanceDataLoader(symbol=_to_ccxt_symbol(symbol))
         df_m15, df_daily, df_weekly = loader.load_all_timeframes()
 
         if df_m15.empty:
-            print("[FRACTAL] No M15 data from Binance, skipping detection", flush=True)
+            print(f"[FRACTAL] No M15 data for {symbol}, skipping detection", flush=True)
             return
 
         active_setups = os.getenv("ACTIVE_SETUPS", "STRICT,MODÉRÉ,FRÉQUENT").split(",")
@@ -987,86 +1001,108 @@ def _fractal_detect_job():
         )
         loop.close()
 
-        print(f"[FRACTAL] Detection complete: {len(signals)} new signal(s) detected", flush=True)
+        print(f"[FRACTAL] {symbol}: {len(signals)} new signal(s) detected", flush=True)
 
     except Exception as e:
-        print(f"[FRACTAL] Detection job failed: {e}", flush=True)
+        print(f"[FRACTAL] Detection job failed for {symbol}: {e}", flush=True)
 
 @app.get("/api/fractal/strict")
-def get_strict_signals():
-    """Retourne les signaux STRICT (W+D+KZ+BR)"""
-    orch = _init_fractal()
+def get_strict_signals(symbol: str = Query(None)):
+    """Retourne les signaux STRICT (W+D+KZ+BR). symbol= optionnel, défaut = première paire."""
+    sym = (symbol or _fractal_symbols()[0]).upper()
+    orch = _init_fractal(sym)
     if not orch:
-        raise HTTPException(500, "Fractal orchestrator not available")
+        raise HTTPException(500, f"Fractal orchestrator not available for {sym}")
     strict_signals = [s for s in orch.signals_log if s.get('setup') == 'STRICT']
     return {
         "setup": "STRICT",
+        "symbol": sym,
         "count": len(strict_signals),
         "confidence": 0.946,
         "signals": strict_signals[-10:]
     }
 
 @app.get("/api/fractal/modere")
-def get_modere_signals():
-    """Retourne les signaux MODÉRÉ (D+KZ+BR)"""
-    orch = _init_fractal()
+def get_modere_signals(symbol: str = Query(None)):
+    """Retourne les signaux MODÉRÉ (D+KZ+BR). symbol= optionnel."""
+    sym = (symbol or _fractal_symbols()[0]).upper()
+    orch = _init_fractal(sym)
     if not orch:
-        raise HTTPException(500, "Fractal orchestrator not available")
+        raise HTTPException(500, f"Fractal orchestrator not available for {sym}")
     modere_signals = [s for s in orch.signals_log if s.get('setup') == 'MODÉRÉ']
     return {
         "setup": "MODÉRÉ",
+        "symbol": sym,
         "count": len(modere_signals),
         "confidence": 0.91,
         "signals": modere_signals[-10:]
     }
 
 @app.get("/api/fractal/frequent")
-def get_frequent_signals():
-    """Retourne les signaux FRÉQUENT (KZ+BR)"""
-    orch = _init_fractal()
+def get_frequent_signals(symbol: str = Query(None)):
+    """Retourne les signaux FRÉQUENT (KZ+BR). symbol= optionnel."""
+    sym = (symbol or _fractal_symbols()[0]).upper()
+    orch = _init_fractal(sym)
     if not orch:
-        raise HTTPException(500, "Fractal orchestrator not available")
+        raise HTTPException(500, f"Fractal orchestrator not available for {sym}")
     frequent_signals = [s for s in orch.signals_log if s.get('setup') == 'FRÉQUENT']
     return {
         "setup": "FRÉQUENT",
+        "symbol": sym,
         "count": len(frequent_signals),
         "confidence": 0.875,
         "signals": frequent_signals[-10:]
     }
 
 @app.get("/api/fractal/stats")
-def get_fractal_stats():
-    """Retourne les statistiques globales des signaux Fractal"""
-    orch = _init_fractal()
-    if not orch:
-        raise HTTPException(500, "Fractal orchestrator not available")
+def get_fractal_stats(symbol: str = Query(None)):
+    """Statistiques globales. symbol= optionnel. Sans symbol= retourne toutes les paires."""
+    symbols = _fractal_symbols()
+    targets = [symbol.upper()] if symbol else symbols
 
-    summary = {
-        "total": len(orch.signals_log),
-        "by_setup": {},
-        "by_pattern": {},
-    }
+    result: dict = {}
+    for sym in targets:
+        orch = _init_fractal(sym)
+        if not orch:
+            result[sym] = {"error": "orchestrator not available"}
+            continue
+        by_setup: dict = {}
+        by_pattern: dict = {}
+        for sig in orch.signals_log:
+            s = sig.get('setup', 'UNKNOWN')
+            p = sig.get('pattern', 'UNKNOWN')
+            by_setup[s] = by_setup.get(s, 0) + 1
+            by_pattern[p] = by_pattern.get(p, 0) + 1
+        result[sym] = {
+            "total_signals": len(orch.signals_log),
+            "by_setup": by_setup,
+            "by_pattern": by_pattern,
+        }
 
-    for signal in orch.signals_log:
-        setup = signal.get('setup', 'UNKNOWN')
-        pattern = signal.get('pattern', 'UNKNOWN')
-        summary["by_setup"][setup] = summary["by_setup"].get(setup, 0) + 1
-        summary["by_pattern"][pattern] = summary["by_pattern"].get(pattern, 0) + 1
+    # Format rétro-compatible si une seule paire demandée
+    if symbol and symbol.upper() in result:
+        data = result[symbol.upper()]
+        data["symbol"] = symbol.upper()
+        data["uptime"] = datetime.utcnow().isoformat()
+        return data
 
     return {
-        "total_signals": summary["total"],
-        "by_setup": summary["by_setup"],
-        "by_pattern": summary["by_pattern"],
-        "uptime": datetime.utcnow().isoformat()
+        "symbols": result,
+        "available_symbols": symbols,
+        "uptime": datetime.utcnow().isoformat(),
     }
 
 @app.get("/api/fractal/health")
-def fractal_health():
-    """Vérification de santé de l'API Fractal"""
-    orch = _init_fractal()
+def fractal_health(symbol: str = Query(None)):
+    """Santé de l'orchestrateur Fractal. symbol= optionnel."""
+    symbols = _fractal_symbols()
+    sym = (symbol or symbols[0]).upper()
+    orch = _init_fractal(sym)
     return {
         "status": "healthy" if orch else "initializing",
-        "orchestrator": "active" if orch else "inactive"
+        "orchestrator": "active" if orch else "inactive",
+        "symbol": sym,
+        "available_symbols": symbols,
     }
 
 @app.post("/api/fractal/discord/test")

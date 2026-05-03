@@ -4,25 +4,42 @@ import { useState, useEffect } from "react"
 import FractalSetupToggle from "@/components/FractalSetupToggle"
 import FractalSignalCard from "@/components/FractalSignalCard"
 import FractalStats from "@/components/FractalStats"
-import { fetchFractalSignals, fetchFractalStats, FractalSetupResponse } from "@/lib/api"
+import { fetchFractalSignals, fetchFractalStats, fetchFractalHealth, FractalSetupResponse } from "@/lib/api"
 
 type Setup = "strict" | "modere" | "frequent"
 
 export default function FractalPage() {
   const [activeSetup, setActiveSetup] = useState<Setup>("strict")
+  const [activeSymbol, setActiveSymbol] = useState<string>("")
+  const [availableSymbols, setAvailableSymbols] = useState<string[]>([])
   const [data, setData] = useState<FractalSetupResponse | null>(null)
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Fetch available symbols on mount
   useEffect(() => {
+    fetchFractalHealth().then(h => {
+      const syms = h.available_symbols ?? []
+      setAvailableSymbols(syms)
+      if (!activeSymbol && syms.length > 0) setActiveSymbol(syms[0])
+    }).catch(() => {
+      // fallback: env var or BTCUSDT
+      const envSym = process.env.NEXT_PUBLIC_TRADING_SYMBOL || "BTCUSDT"
+      setAvailableSymbols([envSym])
+      setActiveSymbol(envSym)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!activeSymbol) return
     const fetchData = async () => {
       try {
         setLoading(true)
         setError(null)
         const [setupData, statsData] = await Promise.all([
-          fetchFractalSignals(activeSetup),
-          fetchFractalStats(),
+          fetchFractalSignals(activeSetup, activeSymbol),
+          fetchFractalStats(activeSymbol),
         ])
         setData(setupData)
         setStats(statsData)
@@ -32,16 +49,45 @@ export default function FractalPage() {
         setLoading(false)
       }
     }
-
     fetchData()
-  }, [activeSetup])
+  }, [activeSetup, activeSymbol])
+
+  const formatSymbol = (sym: string) => sym.replace("USDT", "/USDT")
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-lg font-semibold text-white">Fractal Detection</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Multi-setup fractal pattern recognition avec logging en base de données</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-white">Fractal Detection</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Multi-setup fractal pattern recognition ICT</p>
+        </div>
+
+        {/* Symbol selector — visible uniquement si plusieurs paires */}
+        {availableSymbols.length > 1 && (
+          <div className="flex gap-2">
+            {availableSymbols.map(sym => (
+              <button
+                key={sym}
+                onClick={() => setActiveSymbol(sym)}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  activeSymbol === sym
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white/5 text-slate-400 hover:bg-white/10"
+                }`}
+              >
+                {formatSymbol(sym)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Single symbol badge */}
+        {availableSymbols.length <= 1 && activeSymbol && (
+          <span className="px-3 py-1 rounded text-xs font-medium bg-white/5 text-slate-400">
+            {formatSymbol(activeSymbol)}
+          </span>
+        )}
       </div>
 
       {/* Stats */}
