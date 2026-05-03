@@ -3,14 +3,16 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 const links = [
-  { href: "/daily",       label: "Rapport journalier" },
-  { href: "/pipeline",    label: "Pipeline" },
-  { href: "/deribit",     label: "Deribit Signals" },
-  { href: "/fractal",     label: "Fractal Detection" },
-  { href: "/trades",      label: "Trades" },
-  { href: "/performance", label: "Performance" },
-  { href: "/qtable",      label: "Q-Table" },
+  { href: "/fractal", label: "Fractal Detection" },
 ]
+
+// Onglets en pause — pages conservées, à réactiver plus tard:
+// { href: "/daily",       label: "Rapport journalier" },
+// { href: "/pipeline",    label: "Pipeline" },
+// { href: "/deribit",     label: "Deribit Signals" },
+// { href: "/trades",      label: "Trades" },
+// { href: "/performance", label: "Performance" },
+// { href: "/qtable",      label: "Q-Table" },
 
 export default function Sidebar() {
   const path = usePathname()
