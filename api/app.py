@@ -168,13 +168,23 @@ async def lifespan(app: FastAPI):
         # Résolution toutes les heures 24/7 (les trades peuvent expirer la nuit)
         scheduler.add_job(_ta_resolve_job, "cron", minute=5)
 
+    # Fractal detection : toutes les heures, 24/7
+    fractal_enabled = _env_bool("FRACTAL_ENABLED", True)
+    fractal_interval = int(os.getenv("FRACTAL_INTERVAL_HOURS", "1"))
+    if fractal_enabled:
+        _init_fractal()  # init au démarrage
+        scheduler.add_job(_fractal_detect_job, "cron", hour=f"*/{fractal_interval}", minute=0)
+        # Premier scan immédiat au démarrage
+        scheduler.add_job(_fractal_detect_job, "date")
+
     scheduler.start()
     ta_status = "v2_enabled (ensemble voting)" if ta_enabled else "disabled"
+    fractal_status = f"enabled (every {fractal_interval}h)" if fractal_enabled else "disabled"
     print(
         "[scheduler] APScheduler demarre "
         f"(live 09:51 mac=2, live 11:51 mac=4, shadow 16:05 ET, "
         f"deribit_enabled={deribit_enabled}, deribit_mode={deribit_mode}, "
-        f"ta_notify={ta_status})",
+        f"ta_notify={ta_status}, fractal={fractal_status})",
         flush=True,
     )
     yield
@@ -934,36 +944,8 @@ def ta_notify_v2():
 
 _fractal_orchestrator = None
 
-def _get_mock_signals():
-    """Generate mock Fractal signals for testing UI"""
-    from datetime import datetime, timedelta
-    now = datetime.utcnow()
-    base_price = 67500
-
-    signals = []
-    setups = ['STRICT', 'MODÉRÉ', 'FRÉQUENT']
-    patterns = ['UP->DOWN', 'DOWN->UP']
-    zones = ['LKZ', 'NYKZ', 'LnCl']
-
-    for i in range(25):
-        signal = {
-            "timestamp": (now - timedelta(hours=i)).isoformat(),
-            "setup": setups[i % 3],
-            "day_date": (now - timedelta(days=i // 3)).strftime("%Y-%m-%d"),
-            "kz": zones[i % 3],
-            "pattern": patterns[i % 2],
-            "entry_price": base_price + (i % 10) * 50,
-            "confidence": 0.85 + (i % 10) * 0.01,
-            "levels": {
-                "break_level": base_price + (i % 10) * 100,
-                "retest_level": base_price + (i % 10) * 50 - 25
-            }
-        }
-        signals.append(signal)
-    return signals
-
 def _init_fractal():
-    """Lazy initialize Fractal Orchestrator on first request."""
+    """Initialize Fractal Orchestrator (called at startup and by scheduler)."""
     global _fractal_orchestrator
     if _fractal_orchestrator is None:
         try:
@@ -971,16 +953,44 @@ def _init_fractal():
             from orchestrator import FractalOrchestrator
             webhook = os.getenv("DISCORD_WEBHOOK_FRACTAL") or os.getenv("DISCORD_WEBHOOK")
             _fractal_orchestrator = FractalOrchestrator(discord_webhook_url=webhook)
-            # Add mock signals for UI testing
-            _fractal_orchestrator.signals_log = _get_mock_signals()
         except Exception as e:
-            print(f"[FRACTAL] Failed to init orchestrator: {e}")
-            # Return mock orchestrator for testing
-            class MockOrchestrator:
-                signals_log = _get_mock_signals()
-            _fractal_orchestrator = MockOrchestrator()
-            return _fractal_orchestrator
+            print(f"[FRACTAL] Failed to init orchestrator: {e}", flush=True)
+            return None
     return _fractal_orchestrator
+
+
+def _fractal_detect_job():
+    """Job scheduler: charge Binance et détecte les fractales."""
+    try:
+        sys.path.insert(0, str(ROOT / "strategies" / "fractal"))
+        from main import BinanceDataLoader
+
+        orch = _init_fractal()
+        if not orch:
+            print("[FRACTAL] Orchestrator not available, skipping detection", flush=True)
+            return
+
+        symbol = os.getenv("BINANCE_SYMBOL", "BTC/USDT")
+        loader = BinanceDataLoader(symbol=symbol)
+        df_m15, df_daily, df_weekly = loader.load_all_timeframes()
+
+        if df_m15.empty:
+            print("[FRACTAL] No M15 data from Binance, skipping detection", flush=True)
+            return
+
+        active_setups = os.getenv("ACTIVE_SETUPS", "STRICT,MODÉRÉ,FRÉQUENT").split(",")
+
+        import asyncio
+        loop = asyncio.new_event_loop()
+        signals = loop.run_until_complete(
+            orch.detect_and_notify(df_m15, df_daily, df_weekly, active_setups=active_setups)
+        )
+        loop.close()
+
+        print(f"[FRACTAL] Detection complete: {len(signals)} new signal(s) detected", flush=True)
+
+    except Exception as e:
+        print(f"[FRACTAL] Detection job failed: {e}", flush=True)
 
 @app.get("/api/fractal/strict")
 def get_strict_signals():
