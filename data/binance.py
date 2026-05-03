@@ -40,14 +40,14 @@ _COLUMNS = [
 _BASE_URL_DAILY = "https://data.binance.vision/data/futures/um/daily/klines"
 
 
-def _download_monthly(year: int, month: int, raw_dir: Path):
+def _download_monthly(year: int, month: int, raw_dir: Path, symbol: str):
     tag      = f"{year}-{month:02d}"
-    csv_path = raw_dir / f"{_SYMBOL}-{_INTERVAL}-{tag}.csv"
+    csv_path = raw_dir / f"{symbol}-{_INTERVAL}-{tag}.csv"
     if csv_path.exists():
-        print(f"[binance] {tag} deja present.")
+        print(f"[binance:{symbol}] {tag} deja present.")
         return pd.read_csv(csv_path, header=None, names=_COLUMNS)
-    url = f"{_BASE_URL}/{_SYMBOL}/{_INTERVAL}/{_SYMBOL}-{_INTERVAL}-{tag}.zip"
-    print(f"[binance] {tag} (mensuel)...", end=" ", flush=True)
+    url = f"{_BASE_URL}/{symbol}/{_INTERVAL}/{symbol}-{_INTERVAL}-{tag}.zip"
+    print(f"[binance:{symbol}] {tag} (mensuel)...", end=" ", flush=True)
     try:
         r = requests.get(url, timeout=60)
         r.raise_for_status()
@@ -60,8 +60,7 @@ def _download_monthly(year: int, month: int, raw_dir: Path):
         return None
 
 
-def _download_daily(year: int, month: int, raw_dir: Path):
-    from datetime import date, timedelta
+def _download_daily(year: int, month: int, raw_dir: Path, symbol: str):
     import calendar
     today    = date.today()
     day_dir  = raw_dir / "daily"
@@ -71,10 +70,10 @@ def _download_daily(year: int, month: int, raw_dir: Path):
                    today.day if (year, month) == (today.year, today.month) else 31)
     for d in range(1, last_day + 1):
         tag      = f"{year}-{month:02d}-{d:02d}"
-        csv_path = day_dir / f"{_SYMBOL}-{_INTERVAL}-{tag}.csv"
+        csv_path = day_dir / f"{symbol}-{_INTERVAL}-{tag}.csv"
         if not csv_path.exists():
-            url = f"{_BASE_URL_DAILY}/{_SYMBOL}/{_INTERVAL}/{_SYMBOL}-{_INTERVAL}-{tag}.zip"
-            print(f"[binance] {tag}...", end=" ", flush=True)
+            url = f"{_BASE_URL_DAILY}/{symbol}/{_INTERVAL}/{symbol}-{_INTERVAL}-{tag}.zip"
+            print(f"[binance:{symbol}] {tag}...", end=" ", flush=True)
             try:
                 r = requests.get(url, timeout=30)
                 r.raise_for_status()
@@ -92,20 +91,24 @@ def _download_daily(year: int, month: int, raw_dir: Path):
 
 
 def download_binance_1m(
-    start: tuple = (2020, 1),
-    end:   tuple = None,
+    start:  tuple = (2020, 1),
+    end:    tuple = None,
+    symbol: str   = None,
 ) -> Path:
     """
-    Télécharge les fichiers Binance BTCUSDT futures 1m.
-    Utilise les fichiers mensuels, et les fichiers journaliers pour le mois en cours.
+    Télécharge les klines 1m depuis data.binance.vision pour un symbole futures USDT-M.
 
     Args:
-        start : (year, month) — début de l'historique
-        end   : (year, month) — fin (défaut: mois courant)
+        start  : (year, month) — début de l'historique
+        end    : (year, month) — fin (défaut: mois courant)
+        symbol : ex. "ETHUSDT" — défaut: env BINANCE_SYMBOL ou "BTCUSDT"
 
     Returns:
         Path du fichier parquet résultant.
     """
+    sym     = (symbol or _SYMBOL).upper()
+    out_path = BINANCE_DIR / f"{sym.lower()}_1m.parquet"
+
     BINANCE_DIR.mkdir(parents=True, exist_ok=True)
     raw_dir = BINANCE_DIR / "raw"
     raw_dir.mkdir(exist_ok=True)
@@ -121,9 +124,9 @@ def download_binance_1m(
     while (year, month) <= (end_year, end_month):
         is_current_month = (year == today.year and month == today.month)
         if is_current_month:
-            df_m = _download_daily(year, month, raw_dir)
+            df_m = _download_daily(year, month, raw_dir, sym)
         else:
-            df_m = _download_monthly(year, month, raw_dir)
+            df_m = _download_monthly(year, month, raw_dir, sym)
             if df_m is None:
                 year, month = _next_month(year, month)
                 continue
@@ -132,28 +135,27 @@ def download_binance_1m(
         year, month = _next_month(year, month)
 
     if not frames:
-        raise RuntimeError("[binance] Aucune donnée téléchargée.")
+        raise RuntimeError(f"[binance:{sym}] Aucune donnée téléchargée.")
 
     df_new = _clean(pd.concat(frames, ignore_index=True))
 
     # Fusionner avec le parquet existant si présent
-    if PARQUET_PATH.exists():
-        df_existing = pd.read_parquet(PARQUET_PATH)
+    if out_path.exists():
+        df_existing = pd.read_parquet(out_path)
         existing_end = df_existing["timestamp"].iloc[-1]
         new_start    = df_new["timestamp"].iloc[0]
         if new_start <= existing_end:
-            # Supprimer le chevauchement dans l'existant
             df_existing = df_existing[df_existing["timestamp"] < new_start]
         df = pd.concat([df_existing, df_new], ignore_index=True).drop_duplicates(subset=["ts"]).sort_values("ts")
     else:
         df = df_new
 
-    df.to_parquet(PARQUET_PATH, index=False)
+    df.to_parquet(out_path, index=False)
 
     y0 = df["timestamp"].iloc[0].strftime("%Y-%m")
     y1 = df["timestamp"].iloc[-1].strftime("%Y-%m")
-    print(f"[binance] {len(df):,} bougies 1min ({y0} a {y1}) -> {PARQUET_PATH}")
-    return PARQUET_PATH
+    print(f"[binance:{sym}] {len(df):,} bougies 1min ({y0} a {y1}) -> {out_path}")
+    return out_path
 
 
 def _next_month(year: int, month: int):
