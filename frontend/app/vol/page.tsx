@@ -182,9 +182,9 @@ export default function VolPage() {
             Spread entre IV implicite ATM et vol réalisée annualisée. Positif = options chères → vendre. Négatif = options bon marché → acheter.
           </p>
           <div className="grid grid-cols-4 gap-3">
-            <StatCard label="IV ATM" value={fmtPct(vp.iv_atm)} />
+            <StatCard label="IV ATM" value={fmt(vp.iv_atm, 1) + "%"} />
             <StatCard label="Vol réalisée" value={fmtPct(vp.realized_vol)} />
-            <StatCard label="Premium" value={`${vp.premium > 0 ? "+" : ""}${(vp.premium * 100).toFixed(1)}%`} />
+            <StatCard label="Premium" value={`${vp.premium > 0 ? "+" : ""}${fmtPct(vp.premium)}`} />
             <div className={`bg-[#0d0d14] border rounded-lg px-4 py-3 ${
               vp.bias === "SELL_VOL" ? "border-rose-500/30" :
               vp.bias === "BUY_VOL"  ? "border-emerald-500/30" : "border-white/5"
@@ -236,12 +236,12 @@ export default function VolPage() {
             {/* Options snapshot */}
             {signal.options && (
               <div className="mt-5 pt-4 border-t border-white/5 grid grid-cols-2 gap-2 text-xs">
-                <div className="text-slate-500">IV ATM<span className="float-right text-slate-300 mono">{fmtPct(signal.options.iv_atm)}</span></div>
-                <div className="text-slate-500">Skew 25d<span className="float-right text-slate-300 mono">{fmtPct(signal.options.iv_skew_25d)}</span></div>
-                <div className="text-slate-500">Term 1W<span className="float-right text-slate-300 mono">{fmtPct(signal.options.term_1w)}</span></div>
-                <div className="text-slate-500">Term 1M<span className="float-right text-slate-300 mono">{fmtPct(signal.options.term_1m)}</span></div>
+                <div className="text-slate-500">IV ATM<span className="float-right text-slate-300 mono">{fmt(signal.options.iv_atm, 1)}%</span></div>
+                <div className="text-slate-500">Skew 25d<span className="float-right text-slate-300 mono">{fmt(signal.options.iv_skew_25d, 1)}%</span></div>
+                <div className="text-slate-500">Term 1W<span className="float-right text-slate-300 mono">{fmt(signal.options.term_1w, 1)}%</span></div>
+                <div className="text-slate-500">Term 1M<span className="float-right text-slate-300 mono">{fmt(signal.options.term_1m, 1)}%</span></div>
                 <div className="text-slate-500">Put/Call<span className="float-right text-slate-300 mono">{fmt(signal.options.put_call_ratio)}</span></div>
-                <div className="text-slate-500">Term 3M<span className="float-right text-slate-300 mono">{fmtPct(signal.options.term_3m)}</span></div>
+                <div className="text-slate-500">Term 3M<span className="float-right text-slate-300 mono">{fmt(signal.options.term_3m, 1)}%</span></div>
               </div>
             )}
           </div>

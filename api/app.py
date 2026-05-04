@@ -1017,15 +1017,21 @@ def get_vol_snapshot(
         result["signal"] = {"error": str(e)}
 
     # ── Vol premium (IV ATM vs realized vol) ─────────────────────
+    # iv_atm vient de Deribit en % (ex: 35.77 = 35.77%)
+    # realized_vol_annual vient de engine/volatility en décimal (ex: 0.439 = 43.9%)
+    # → normaliser iv_atm en décimal avant soustraction
     try:
-        iv_atm = result.get("signal", {}).get("options", {}).get("iv_atm")
+        iv_atm_raw = result.get("signal", {}).get("options", {}).get("iv_atm")
         realized = result.get("signal", {}).get("realized_vol_annual")
-        if iv_atm and realized:
-            premium = round(float(iv_atm) - float(realized), 4)
+        if iv_atm_raw and realized:
+            iv_atm_pct = float(iv_atm_raw)          # ex: 35.77 (%)
+            iv_atm_dec = iv_atm_pct / 100.0          # ex: 0.3577 (décimal)
+            realized_dec = float(realized)            # ex: 0.439 (décimal)
+            premium = round(iv_atm_dec - realized_dec, 4)
             result["vol_premium"] = {
-                "iv_atm": round(float(iv_atm), 4),
-                "realized_vol": round(float(realized), 4),
-                "premium": premium,
+                "iv_atm": round(iv_atm_pct, 2),      # gardé en % pour affichage direct
+                "realized_vol": round(realized_dec, 4),
+                "premium": premium,                   # en décimal
                 "bias": "SELL_VOL" if premium > 0.05 else "BUY_VOL" if premium < -0.05 else "NEUTRAL",
             }
         else:
