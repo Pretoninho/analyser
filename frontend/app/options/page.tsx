@@ -1,0 +1,665 @@
+"use client"
+
+import { useState, useEffect, useMemo, useCallback } from "react"
+import { fetchVolSnapshot } from "@/lib/api"
+
+// ═══════════════════════════════════════════════════════════════
+// BLACK-SCHOLES MATH
+// ═══════════════════════════════════════════════════════════════
+
+// Approximation Abramowitz & Stegun (error < 7.5e-8)
+function ncdf(x: number): number {
+  const a = [0.319381530, -0.356563782, 1.781477937, -1.821255978, 1.330274429]
+  const k = 1 / (1 + 0.2316419 * Math.abs(x))
+  let p = k * a[0]; let kk = k
+  for (let i = 1; i < 5; i++) { kk *= k; p += kk * a[i] }
+  const n = 1 - (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * x * x) * p
+  return x >= 0 ? n : 1 - n
+}
+
+function npdf(x: number): number {
+  return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI)
+}
+
+function d1(S: number, K: number, T: number, r: number, q: number, v: number): number {
+  return (Math.log(S / K) + (r - q + 0.5 * v * v) * T) / (v * Math.sqrt(T))
+}
+
+function bsPrice(S: number, K: number, T: number, r: number, q: number, v: number, call: boolean): number {
+  if (T <= 0) return Math.max(0, call ? S - K : K - S)
+  if (v <= 0)  return Math.max(0, call ? S * Math.exp(-q * T) - K * Math.exp(-r * T)
+                                       : K * Math.exp(-r * T) - S * Math.exp(-q * T))
+  const D1 = d1(S, K, T, r, q, v), D2 = D1 - v * Math.sqrt(T)
+  const eq = Math.exp(-q * T), er = Math.exp(-r * T)
+  return call
+    ? S * eq * ncdf(D1)  - K * er * ncdf(D2)
+    : K * er * ncdf(-D2) - S * eq * ncdf(-D1)
+}
+
+function bsGreeks(S: number, K: number, T: number, r: number, q: number, v: number, call: boolean) {
+  if (T <= 0 || v <= 0) return { delta: call ? 1 : -1, gamma: 0, vega: 0, theta: 0, rho: 0 }
+  const D1 = d1(S, K, T, r, q, v), D2 = D1 - v * Math.sqrt(T)
+  const sT = Math.sqrt(T), pdf1 = npdf(D1)
+  const eq = Math.exp(-q * T), er = Math.exp(-r * T)
+  const delta = call ? eq * ncdf(D1)  : -eq * ncdf(-D1)
+  const gamma = eq * pdf1 / (S * v * sT)
+  const vega  = S * eq * pdf1 * sT / 100           // per 1% IV
+  const theta = call
+    ? (-S * eq * pdf1 * v / (2 * sT) - r * K * er * ncdf(D2)  + q * S * eq * ncdf(D1))  / 365
+    : (-S * eq * pdf1 * v / (2 * sT) + r * K * er * ncdf(-D2) - q * S * eq * ncdf(-D1)) / 365
+  const rho = call
+    ?  K * T * er * ncdf(D2)  / 100
+    : -K * T * er * ncdf(-D2) / 100
+  return { delta, gamma, vega, theta, rho }
+}
+
+// Newton-Raphson IV solver
+function ivSolve(mkt: number, S: number, K: number, T: number, r: number, q: number, call: boolean): number | null {
+  if (mkt <= 0 || T <= 0) return null
+  let v = 0.5
+  for (let i = 0; i < 200; i++) {
+    const p = bsPrice(S, K, T, r, q, v, call)
+    const vg = bsGreeks(S, K, T, r, q, v, call).vega * 100
+    const err = p - mkt
+    if (Math.abs(err) < 1e-6) return v
+    if (Math.abs(vg) < 1e-10) break
+    v -= err / vg
+    if (v <= 0.001) v = 0.001
+    if (v > 20) v = 20
+  }
+  return v > 0 ? v : null
+}
+
+// Probability ITM (risk-neutral)
+function probITM(S: number, K: number, T: number, r: number, q: number, v: number, call: boolean): number {
+  if (T <= 0 || v <= 0) return call ? (S > K ? 1 : 0) : (S < K ? 1 : 0)
+  const D2 = d1(S, K, T, r, q, v) - v * Math.sqrt(T)
+  return call ? ncdf(D2) : ncdf(-D2)
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════════════════
+
+type LegSide = "long" | "short"
+type OptType = "call" | "put"
+type Tab = "pricer" | "position" | "probas"
+
+interface Leg {
+  id: number
+  type: OptType
+  side: LegSide
+  strike: number
+  qty: number
+  premium: number
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PRESETS
+// ═══════════════════════════════════════════════════════════════
+
+function makePreset(name: string, S: number, iv: number, T: number, r: number, q: number): Leg[] {
+  const atm = Math.round(S / 1000) * 1000
+  const otm = Math.round(S * 1.05 / 1000) * 1000
+  const otm2 = Math.round(S * 1.10 / 1000) * 1000
+  const itm = Math.round(S * 0.95 / 1000) * 1000
+  const itm2 = Math.round(S * 0.90 / 1000) * 1000
+  const p = (K: number, c: boolean) => parseFloat(bsPrice(S, K, T, r, q, iv, c).toFixed(2))
+  let id = 1
+  const L = (type: OptType, side: LegSide, K: number): Leg => ({
+    id: id++, type, side, strike: K, qty: 1, premium: p(K, type === "call")
+  })
+  switch (name) {
+    case "straddle":    return [L("call","long",atm), L("put","long",atm)]
+    case "strangle":    return [L("call","long",otm), L("put","long",itm)]
+    case "iron_condor": return [L("put","short",itm), L("put","long",itm2), L("call","short",otm), L("call","long",otm2)]
+    case "bull_spread":  return [L("call","long",atm), L("call","short",otm)]
+    case "bear_spread":  return [L("put","long",atm), L("put","short",itm)]
+    case "butterfly":    return [L("call","long",itm), L("call","short",atm), L("call","short",atm), L("call","long",otm)]
+    default: return []
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// P&L DIAGRAM (SVG)
+// ═══════════════════════════════════════════════════════════════
+
+function PnLDiagram({ legs, spot }: { legs: Leg[]; spot: number }) {
+  const W = 580, H = 200, PAD = { t: 10, b: 30, l: 50, r: 10 }
+  const inner = { w: W - PAD.l - PAD.r, h: H - PAD.t - PAD.b }
+
+  const spots = useMemo(() => {
+    const n = 120
+    return Array.from({ length: n }, (_, i) => spot * (0.7 + 0.6 * i / (n - 1)))
+  }, [spot])
+
+  const payoffs = useMemo(() => spots.map(s => {
+    return legs.reduce((sum, leg) => {
+      const intrinsic = leg.type === "call" ? Math.max(0, s - leg.strike) : Math.max(0, leg.strike - s)
+      const pnl = (intrinsic - leg.premium) * leg.qty * (leg.side === "long" ? 1 : -1)
+      return sum + pnl
+    }, 0)
+  }), [legs, spots])
+
+  if (legs.length === 0) return (
+    <div className="flex items-center justify-center h-[200px] text-slate-600 text-sm">
+      Ajoutez des legs pour voir le P&L
+    </div>
+  )
+
+  const minP = Math.min(...payoffs), maxP = Math.max(...payoffs)
+  const range = maxP - minP || 1
+  const yPad = range * 0.15
+  const yMin = minP - yPad, yMax = maxP + yPad
+
+  const toX = (i: number) => PAD.l + (i / (spots.length - 1)) * inner.w
+  const toY = (v: number) => PAD.t + ((yMax - v) / (yMax - yMin)) * inner.h
+  const zeroY = toY(0)
+
+  // Build path
+  const pathPos: string[] = [], pathNeg: string[] = []
+  for (let i = 0; i < spots.length; i++) {
+    const x = toX(i), y = toY(payoffs[i])
+    const cmd = i === 0 ? "M" : "L"
+    if (payoffs[i] >= 0) pathPos.push(`${cmd}${x},${y}`)
+    else pathNeg.push(`${cmd}${x},${y}`)
+  }
+
+  // Breakevens
+  const bes: number[] = []
+  for (let i = 1; i < payoffs.length; i++) {
+    if (payoffs[i - 1] * payoffs[i] < 0) {
+      const t = -payoffs[i - 1] / (payoffs[i] - payoffs[i - 1])
+      bes.push(spots[i - 1] + t * (spots[i] - spots[i - 1]))
+    }
+  }
+
+  const spotX = toX(spots.findIndex(s => s >= spot) || 0)
+  const fmt = (v: number) => v > 1000 ? `${(v/1000).toFixed(1)}k` : v.toFixed(0)
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }}>
+      {/* Zero line */}
+      <line x1={PAD.l} y1={zeroY} x2={W - PAD.r} y2={zeroY} stroke="#ffffff18" strokeWidth={1} />
+      {/* Payoff paths */}
+      {pathPos.length > 0 && <path d={pathPos.join(" ")} fill="none" stroke="#34d399" strokeWidth={2} strokeLinejoin="round" />}
+      {pathNeg.length > 0 && <path d={pathNeg.join(" ")} fill="none" stroke="#f87171" strokeWidth={2} strokeLinejoin="round" />}
+      {/* Current spot */}
+      <line x1={spotX} y1={PAD.t} x2={spotX} y2={H - PAD.b} stroke="#94a3b8" strokeWidth={1} strokeDasharray="4,3" />
+      <text x={spotX + 3} y={PAD.t + 10} fontSize={9} fill="#94a3b8">{fmt(spot)}</text>
+      {/* Breakevens */}
+      {bes.map((be, i) => {
+        const bx = PAD.l + ((be - spots[0]) / (spots[spots.length - 1] - spots[0])) * inner.w
+        return <g key={i}>
+          <circle cx={bx} cy={zeroY} r={3} fill="#fbbf24" />
+          <text x={bx} y={H - PAD.b + 12} fontSize={8} fill="#fbbf24" textAnchor="middle">{fmt(be)}</text>
+        </g>
+      })}
+      {/* Y labels */}
+      {[yMax, 0, yMin].map((v, i) => (
+        <text key={i} x={PAD.l - 4} y={toY(v) + 4} fontSize={8} fill="#64748b" textAnchor="end">
+          {v.toFixed(0)}
+        </text>
+      ))}
+      {/* X labels */}
+      {[0.75, 1.0, 1.25].map((f, i) => {
+        const v = spot * f
+        const x = PAD.l + ((v - spots[0]) / (spots[spots.length - 1] - spots[0])) * inner.w
+        return <text key={i} x={x} y={H - 2} fontSize={8} fill="#64748b" textAnchor="middle">{fmt(v)}</text>
+      })}
+    </svg>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS UI
+// ═══════════════════════════════════════════════════════════════
+
+const inp = "bg-[#0d0d14] border border-white/10 rounded px-3 py-1.5 text-sm text-white mono w-full focus:outline-none focus:border-indigo-500/60"
+const btn = (active?: boolean) => `px-3 py-1.5 text-xs rounded border transition-colors ${active ? "bg-indigo-600 border-indigo-500 text-white" : "border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-300"}`
+const label = "text-[11px] text-slate-500 mb-1 block"
+
+function fmt2(v: number, d = 2) { return isFinite(v) ? v.toFixed(d) : "—" }
+function fmtSign(v: number, d = 4) { return (v >= 0 ? "+" : "") + fmt2(v, d) }
+
+function GreekRow({ name, value, hint }: { name: string; value: number; hint: string }) {
+  return (
+    <div className="flex items-center justify-between py-1.5 border-b border-white/[0.04]">
+      <div>
+        <span className="text-sm text-slate-300 mono">{name}</span>
+        <span className="ml-2 text-[10px] text-slate-600">{hint}</span>
+      </div>
+      <span className={`text-sm mono font-medium ${Math.abs(value) < 0.0001 ? "text-slate-500" : "text-white"}`}>
+        {fmtSign(value, 4)}
+      </span>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE
+// ═══════════════════════════════════════════════════════════════
+
+export default function OptionsPage() {
+  // Global params
+  const [spot, setSpot] = useState(78000)
+  const [dte,  setDte]  = useState(7)
+  const [ivPct, setIvPct] = useState(40)    // % — e.g. 40 = 40%
+  const [rPct,  setRPct]  = useState(5)     // % risk-free
+  const [qPct,  setQPct]  = useState(0)     // % funding/dividend
+
+  const T = dte / 365
+  const iv = ivPct / 100
+  const r  = rPct  / 100
+  const q  = qPct  / 100
+
+  const [apiLoading, setApiLoading] = useState(true)
+  const [tab, setTab] = useState<Tab>("pricer")
+
+  // Pricer state
+  const [strike, setStrike] = useState(78000)
+  const [optType, setOptType] = useState<OptType>("call")
+  const [mktPriceStr, setMktPriceStr] = useState("")
+  const [solvedIV, setSolvedIV] = useState<number | null>(null)
+
+  // Position state
+  const [legs, setLegs] = useState<Leg[]>([])
+  const [nextId, setNextId] = useState(1)
+  const [newLeg, setNewLeg] = useState<Omit<Leg, "id">>({
+    type: "call", side: "long", strike: 78000, qty: 1, premium: 0
+  })
+
+  // Auto-fill from live API
+  useEffect(() => {
+    fetchVolSnapshot().then(snap => {
+      if (snap.signal && !("error" in snap.signal)) {
+        setSpot(Math.round(snap.signal.close))
+        setStrike(Math.round(snap.signal.close))
+        setNewLeg(l => ({ ...l, strike: Math.round(snap.signal.close) }))
+        const ivAtm = snap.signal.options?.iv_atm
+        if (ivAtm) setIvPct(parseFloat(ivAtm.toFixed(1)))
+        const fund = snap.signal.funding_annualized
+        if (fund) setQPct(parseFloat((fund * 100).toFixed(2)))
+      }
+    }).catch(() => {}).finally(() => setApiLoading(false))
+  }, [])
+
+  // IV Solver
+  const handleSolveIV = useCallback(() => {
+    const mkt = parseFloat(mktPriceStr)
+    if (!isFinite(mkt) || mkt <= 0) return
+    const solved = ivSolve(mkt, spot, strike, T, r, q, optType === "call")
+    setSolvedIV(solved)
+  }, [mktPriceStr, spot, strike, T, r, q, optType])
+
+  const price  = useMemo(() => bsPrice(spot, strike, T, r, q, iv, optType === "call"), [spot, strike, T, r, q, iv, optType])
+  const greeks = useMemo(() => bsGreeks(spot, strike, T, r, q, iv, optType === "call"), [spot, strike, T, r, q, iv, optType])
+
+  // Position metrics
+  const posMetrics = useMemo(() => {
+    if (legs.length === 0) return null
+    const spots = Array.from({ length: 300 }, (_, i) => spot * (0.5 + i / 300))
+    const payoffs = spots.map(s =>
+      legs.reduce((sum, leg) => {
+        const intr = leg.type === "call" ? Math.max(0, s - leg.strike) : Math.max(0, leg.strike - s)
+        return sum + (intr - leg.premium) * leg.qty * (leg.side === "long" ? 1 : -1)
+      }, 0)
+    )
+    const maxP = Math.max(...payoffs), minP = Math.min(...payoffs)
+    const bes: number[] = []
+    for (let i = 1; i < payoffs.length; i++) {
+      if (payoffs[i - 1] * payoffs[i] < 0) {
+        const t = -payoffs[i - 1] / (payoffs[i] - payoffs[i - 1])
+        bes.push(spots[i - 1] + t * (spots[i] - spots[i - 1]))
+      }
+    }
+    const totalPremium = legs.reduce((s, l) => s + l.premium * l.qty * (l.side === "long" ? -1 : 1), 0)
+    const deltaAgg = legs.reduce((s, l) => {
+      const g = bsGreeks(spot, l.strike, T, r, q, iv, l.type === "call")
+      return s + g.delta * l.qty * (l.side === "long" ? 1 : -1)
+    }, 0)
+    return { maxP, minP, bes, totalPremium, deltaAgg }
+  }, [legs, spot, T, r, q, iv])
+
+  // Probas
+  const em1 = spot * (Math.exp(iv * Math.sqrt(T)) - 1)
+  const em2 = spot * (Math.exp(2 * iv * Math.sqrt(T)) - 1)
+  const probStrikesData = useMemo(() => {
+    const strikes = [-20, -15, -10, -5, 0, 5, 10, 15, 20].map(pct => spot * (1 + pct / 100))
+    return strikes.map(K => ({
+      K: Math.round(K),
+      pct: ((K - spot) / spot * 100).toFixed(0),
+      probCall: probITM(spot, K, T, r, q, iv, true),
+      probPut:  probITM(spot, K, T, r, q, iv, false),
+    }))
+  }, [spot, T, r, q, iv])
+
+  const addLeg = () => {
+    const premium = newLeg.premium > 0 ? newLeg.premium
+      : parseFloat(bsPrice(spot, newLeg.strike, T, r, q, iv, newLeg.type === "call").toFixed(2))
+    setLegs(l => [...l, { ...newLeg, id: nextId, premium }])
+    setNextId(n => n + 1)
+  }
+
+  const applyPreset = (name: string) => {
+    setLegs(makePreset(name, spot, iv, T, r, q))
+    setNextId(10)
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-white">Options Calculator</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Black-Scholes · Greeks · Position Builder · Probabilités
+            {apiLoading && <span className="ml-2 text-indigo-400">· chargement données live...</span>}
+          </p>
+        </div>
+      </div>
+
+      {/* Global params */}
+      <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-4">
+        <p className="text-[11px] text-slate-500 mb-3 uppercase tracking-wider">Paramètres globaux</p>
+        <div className="grid grid-cols-5 gap-3">
+          <div>
+            <label className={label}>Spot (S)</label>
+            <input className={inp} type="number" value={spot} onChange={e => setSpot(+e.target.value)} />
+          </div>
+          <div>
+            <label className={label}>DTE (jours)</label>
+            <input className={inp} type="number" value={dte} min={1} onChange={e => setDte(+e.target.value)} />
+          </div>
+          <div>
+            <label className={label}>IV (%)</label>
+            <input className={inp} type="number" value={ivPct} step={0.5} onChange={e => setIvPct(+e.target.value)} />
+          </div>
+          <div>
+            <label className={label}>Taux r (%)</label>
+            <input className={inp} type="number" value={rPct} step={0.1} onChange={e => setRPct(+e.target.value)} />
+          </div>
+          <div>
+            <label className={label}>Funding q (%)</label>
+            <input className={inp} type="number" value={qPct} step={0.01} onChange={e => setQPct(+e.target.value)} />
+          </div>
+        </div>
+        <p className="text-[10px] text-slate-600 mt-2">
+          T = {T.toFixed(5)} ans · IV décimal = {iv.toFixed(4)} · pré-rempli depuis Deribit live
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2">
+        {(["pricer", "position", "probas"] as Tab[]).map(t => (
+          <button key={t} onClick={() => setTab(t)} className={btn(tab === t)}>
+            {t === "pricer" ? "Pricer & Greeks" : t === "position" ? "Position Builder" : "Probabilités"}
+          </button>
+        ))}
+      </div>
+
+      {/* ── TAB PRICER ── */}
+      {tab === "pricer" && (
+        <div className="grid grid-cols-2 gap-4">
+          {/* Inputs */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-white">Black-Scholes</h2>
+
+            <div className="flex gap-2">
+              {(["call", "put"] as OptType[]).map(t => (
+                <button key={t} onClick={() => setOptType(t)} className={`${btn(optType === t)} flex-1`}>
+                  {t.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
+            <div>
+              <label className={label}>Strike (K)</label>
+              <input className={inp} type="number" value={strike} onChange={e => setStrike(+e.target.value)} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="bg-white/[0.03] rounded px-3 py-2">
+                <p className="text-[10px] text-slate-500">Prix théorique</p>
+                <p className="text-xl font-bold text-white mono">{fmt2(price, 2)}</p>
+              </div>
+              <div className="bg-white/[0.03] rounded px-3 py-2">
+                <p className="text-[10px] text-slate-500">Moneyness</p>
+                <p className="text-base font-semibold mono text-slate-300">
+                  {((spot / strike - 1) * 100).toFixed(2)}%
+                </p>
+              </div>
+            </div>
+
+            {/* IV Solver */}
+            <div className="border-t border-white/5 pt-4">
+              <p className="text-[11px] text-slate-400 mb-2">IV Solver — entre un prix de marché</p>
+              <div className="flex gap-2">
+                <input
+                  className={inp}
+                  type="number"
+                  placeholder="Prix marché"
+                  value={mktPriceStr}
+                  onChange={e => { setMktPriceStr(e.target.value); setSolvedIV(null) }}
+                />
+                <button onClick={handleSolveIV} className={btn(false) + " whitespace-nowrap"}>
+                  Solve IV
+                </button>
+              </div>
+              {solvedIV !== null && (
+                <p className="mt-2 text-sm text-indigo-300 mono">
+                  IV implicite : <strong>{(solvedIV * 100).toFixed(2)}%</strong>
+                  {" "}(vs ATM {ivPct.toFixed(1)}% — spread {((solvedIV - iv) * 100).toFixed(1)}pts)
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Greeks */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-sm font-semibold text-white mb-4">Greeks</h2>
+            <GreekRow name="Delta" value={greeks.delta} hint="Δ prix / Δ spot" />
+            <GreekRow name="Gamma" value={greeks.gamma} hint="Δ delta / Δ spot" />
+            <GreekRow name="Vega"  value={greeks.vega}  hint="Δ prix / +1% IV" />
+            <GreekRow name="Theta" value={greeks.theta} hint="Δ prix / jour" />
+            <GreekRow name="Rho"   value={greeks.rho}   hint="Δ prix / +1% taux" />
+
+            <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+              <div className="bg-white/[0.02] rounded px-3 py-2">
+                <p className="text-slate-500">Prob ITM (call)</p>
+                <p className="text-white mono">{(probITM(spot, strike, T, r, q, iv, true) * 100).toFixed(1)}%</p>
+              </div>
+              <div className="bg-white/[0.02] rounded px-3 py-2">
+                <p className="text-slate-500">Prob ITM (put)</p>
+                <p className="text-white mono">{(probITM(spot, strike, T, r, q, iv, false) * 100).toFixed(1)}%</p>
+              </div>
+              <div className="bg-white/[0.02] rounded px-3 py-2">
+                <p className="text-slate-500">Breakeven call</p>
+                <p className="text-white mono">{(strike + price).toFixed(0)}</p>
+              </div>
+              <div className="bg-white/[0.02] rounded px-3 py-2">
+                <p className="text-slate-500">Breakeven put</p>
+                <p className="text-white mono">{(strike - price).toFixed(0)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB POSITION ── */}
+      {tab === "position" && (
+        <div className="space-y-4">
+          {/* Presets */}
+          <div className="flex gap-2 flex-wrap">
+            <span className="text-[11px] text-slate-500 self-center">Presets :</span>
+            {[["straddle","Straddle"],["strangle","Strangle"],["iron_condor","Iron Condor"],["bull_spread","Bull Spread"],["bear_spread","Bear Spread"],["butterfly","Butterfly"]].map(([k,l]) => (
+              <button key={k} onClick={() => applyPreset(k)} className={btn(false)}>{l}</button>
+            ))}
+            <button onClick={() => setLegs([])} className="ml-auto px-3 py-1.5 text-xs rounded border border-rose-500/30 text-rose-400 hover:bg-rose-500/10">
+              Reset
+            </button>
+          </div>
+
+          {/* Add leg */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-4">
+            <p className="text-[11px] text-slate-500 mb-3">Ajouter un leg</p>
+            <div className="flex gap-2 flex-wrap items-end">
+              <div className="flex gap-1">
+                {(["long","short"] as LegSide[]).map(s => (
+                  <button key={s} onClick={() => setNewLeg(l => ({...l, side: s}))} className={btn(newLeg.side === s)}>
+                    {s.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-1">
+                {(["call","put"] as OptType[]).map(t => (
+                  <button key={t} onClick={() => setNewLeg(l => ({...l, type: t}))} className={btn(newLeg.type === t)}>
+                    {t.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <div className="w-28">
+                <label className={label}>Strike</label>
+                <input className={inp} type="number" value={newLeg.strike}
+                  onChange={e => setNewLeg(l => ({...l, strike: +e.target.value}))} />
+              </div>
+              <div className="w-16">
+                <label className={label}>Qty</label>
+                <input className={inp} type="number" value={newLeg.qty} min={1}
+                  onChange={e => setNewLeg(l => ({...l, qty: +e.target.value}))} />
+              </div>
+              <div className="w-28">
+                <label className={label}>Prime (0=BS auto)</label>
+                <input className={inp} type="number" value={newLeg.premium} step={0.01}
+                  onChange={e => setNewLeg(l => ({...l, premium: +e.target.value}))} />
+              </div>
+              <button onClick={addLeg} className="px-4 py-1.5 text-xs rounded bg-indigo-600 text-white hover:bg-indigo-500">
+                + Ajouter
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Legs table */}
+            <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
+              <div className="px-4 py-2 border-b border-white/5 text-[11px] text-slate-500 uppercase">Legs</div>
+              {legs.length === 0
+                ? <p className="text-slate-600 text-sm p-4">Aucun leg</p>
+                : legs.map(leg => (
+                  <div key={leg.id} className="flex items-center justify-between px-4 py-2 border-b border-white/[0.03] text-xs">
+                    <span className={leg.side === "long" ? "text-emerald-400" : "text-rose-400"}>
+                      {leg.side.toUpperCase()}
+                    </span>
+                    <span className="text-slate-300 mono">{leg.type.toUpperCase()}</span>
+                    <span className="text-white mono">{leg.strike.toLocaleString()}</span>
+                    <span className="text-slate-400">×{leg.qty}</span>
+                    <span className="text-slate-400 mono">{leg.premium.toFixed(2)}</span>
+                    <button onClick={() => setLegs(l => l.filter(x => x.id !== leg.id))}
+                      className="text-slate-600 hover:text-rose-400 ml-2">✕</button>
+                  </div>
+                ))
+              }
+              {/* Metrics */}
+              {posMetrics && (
+                <div className="px-4 py-3 border-t border-white/5 grid grid-cols-2 gap-2 text-xs">
+                  <div><span className="text-slate-500">Max Profit</span><span className="float-right text-emerald-300 mono">{posMetrics.maxP > 9999 ? "Illimité" : posMetrics.maxP.toFixed(0)}</span></div>
+                  <div><span className="text-slate-500">Max Loss</span><span className="float-right text-rose-300 mono">{posMetrics.minP < -9999 ? "Illimité" : posMetrics.minP.toFixed(0)}</span></div>
+                  <div><span className="text-slate-500">Prime nette</span><span className="float-right text-white mono">{fmtSign(posMetrics.totalPremium, 2)}</span></div>
+                  <div><span className="text-slate-500">Delta global</span><span className="float-right text-white mono">{fmtSign(posMetrics.deltaAgg, 3)}</span></div>
+                  {posMetrics.bes.length > 0 && (
+                    <div className="col-span-2 text-amber-300">
+                      BE: {posMetrics.bes.map(b => b.toFixed(0)).join(" · ")}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* P&L Diagram */}
+            <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-4">
+              <p className="text-[11px] text-slate-500 mb-2 uppercase">P&L à expiry</p>
+              <PnLDiagram legs={legs} spot={spot} />
+              <p className="text-[10px] text-slate-600 mt-1">
+                — — spot actuel · ● breakeven · <span className="text-emerald-400">profit</span> · <span className="text-rose-400">perte</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB PROBAS ── */}
+      {tab === "probas" && (
+        <div className="grid grid-cols-2 gap-4">
+          {/* Expected Move */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-sm font-semibold text-white mb-4">Expected Move</h2>
+            <p className="text-xs text-slate-500 mb-4">
+              Mouvement attendu à 1σ et 2σ sur {dte} jours (IV={ivPct}%)
+            </p>
+            {[
+              { label: "1σ (68%)", move: em1, factor: 1 },
+              { label: "2σ (95%)", move: em2, factor: 2 },
+            ].map(({ label, move }) => (
+              <div key={label} className="mb-4">
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-slate-400">{label}</span>
+                  <span className="text-white mono">±{move.toFixed(0)} ({(move/spot*100).toFixed(1)}%)</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-rose-300 mono">{(spot - move).toFixed(0)}</span>
+                  <div className="flex-1 h-2 rounded bg-white/10 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-rose-500/30 via-slate-700 to-emerald-500/30 rounded" />
+                  </div>
+                  <span className="text-emerald-300 mono">{(spot + move).toFixed(0)}</span>
+                </div>
+              </div>
+            ))}
+            <div className="border-t border-white/5 pt-3 mt-3 text-xs grid grid-cols-2 gap-2">
+              <div className="bg-white/[0.02] rounded px-3 py-2">
+                <p className="text-slate-500">Vol quotidienne</p>
+                <p className="text-white mono">{(iv / Math.sqrt(365) * 100).toFixed(2)}%</p>
+              </div>
+              <div className="bg-white/[0.02] rounded px-3 py-2">
+                <p className="text-slate-500">Move 1j (1σ)</p>
+                <p className="text-white mono">{(spot * iv / Math.sqrt(365)).toFixed(0)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Prob table */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
+            <div className="px-5 py-3 border-b border-white/5">
+              <h2 className="text-sm font-semibold text-white">Prob ITM par strike</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Probabilité risk-neutral à expiry ({dte}j)</p>
+            </div>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-white/5">
+                  {["Strike", "Δ%", "Prob Call ITM", "POP Put vendu", "Prob Put ITM"].map(h => (
+                    <th key={h} className="px-3 py-2 text-left text-[10px] text-slate-500 font-medium">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {probStrikesData.map(row => {
+                  const isAtm = Math.abs(row.K - spot) < spot * 0.01
+                  return (
+                    <tr key={row.K} className={`border-b border-white/[0.03] ${isAtm ? "bg-white/[0.03]" : ""}`}>
+                      <td className={`px-3 py-1.5 mono ${isAtm ? "text-indigo-300 font-semibold" : "text-slate-300"}`}>
+                        {row.K.toLocaleString()}
+                      </td>
+                      <td className="px-3 py-1.5 mono text-slate-500">{row.pct}%</td>
+                      <td className="px-3 py-1.5 mono text-emerald-300">{(row.probCall * 100).toFixed(1)}%</td>
+                      <td className="px-3 py-1.5 mono text-slate-300">{((1 - row.probPut) * 100).toFixed(1)}%</td>
+                      <td className="px-3 py-1.5 mono text-rose-300">{(row.probPut * 100).toFixed(1)}%</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
