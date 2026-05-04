@@ -160,6 +160,65 @@ export async function notifyDeribitSignal(timeframe = "1h", days = 90) {
   }>
 }
 
+// ── Vol Signal ────────────────────────────────────────────────────────────────
+
+export type VolSnapshot = {
+  dvol: {
+    asset: string
+    dvol_close: number
+    dvol_z: number
+    dvol_roc_24h: number
+    dvol_ret_std_24h: number
+    dvol_state: "VOL_SHOCK_UP" | "VOL_CRUSH_DOWN" | "NEUTRAL"
+    risk_regime: "RISK_OFF" | "RISK_ON" | "BALANCED"
+    intensity: number
+    latest_ts: string
+    error?: string
+  }
+  signal: {
+    asset: string
+    close: number
+    funding_annualized: number
+    realized_vol_annual: number
+    latest_ts: string
+    signal: {
+      action: "LONG" | "SHORT" | "FLAT" | "WATCH"
+      horizon: string
+      confidence: number
+      net_score: number
+      long_score: number
+      short_score: number
+      edge_total: number
+      contract?: { instrument: string; tenor: string; why: string }
+    }
+    edges: Record<string, number>
+    drivers: Array<{ name: string; score: number }>
+    options: {
+      iv_atm?: number
+      iv_skew_25d?: number
+      put_call_ratio?: number
+      term_1w?: number
+      term_1m?: number
+      term_3m?: number
+    }
+    error?: string
+  }
+  vol_premium: {
+    iv_atm: number
+    realized_vol: number
+    premium: number
+    bias: "SELL_VOL" | "BUY_VOL" | "NEUTRAL"
+  } | null
+  timestamp: string
+}
+
+export async function fetchVolSnapshot(asset = "BTC", timeframe = "1h", days = 60) {
+  const q = new URLSearchParams({ asset, timeframe, days: String(days) })
+  const res = await fetch(apiUrl(`/api/vol/snapshot?${q}`), { cache: "no-store" })
+  if (!res.ok) throw new Error(`vol/snapshot: ${res.status}`)
+  return res.json() as Promise<VolSnapshot>
+}
+
 export type FractalSignal = {
   timestamp: string
   setup: string

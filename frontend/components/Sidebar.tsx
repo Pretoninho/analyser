@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 
 const links = [
   { href: "/fractal", label: "Fractal Detection" },
+  { href: "/vol",     label: "Vol Signal" },
 ]
 
 // Onglets en pause — pages conservées, à réactiver plus tard:

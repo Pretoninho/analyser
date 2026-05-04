@@ -168,6 +168,38 @@ async def lifespan(app: FastAPI):
         # Résolution toutes les heures 24/7 (les trades peuvent expirer la nuit)
         scheduler.add_job(_ta_resolve_job, "cron", minute=5)
 
+    # Vol Signal (DVOL) : toutes les 4h, 24/7
+    vol_enabled = _env_bool("VOL_NOTIFY_ENABLED", True)
+    vol_interval = int(os.getenv("VOL_NOTIFY_INTERVAL_HOURS", "4"))
+    vol_minute = int(os.getenv("VOL_NOTIFY_MINUTE", "5"))
+    if vol_enabled:
+        def _vol_notify_job():
+            try:
+                from analysis.deribit_futures.dvol import DvolDetectorConfig, detect_dvol_variation, format_dvol_signal
+                webhook = (
+                    os.getenv("DISCORD_WEBHOOK_VOL_URL")
+                    or os.getenv("DISCORD_WEBHOOK_DVOL_URL")
+                    or os.getenv("DISCORD_WEBHOOK_DERIBIT_URL")
+                    or os.getenv("DISCORD_WEBHOOK_URL", "")
+                )
+                if not webhook:
+                    print("[scheduler] Vol notify skipped (no webhook)", flush=True)
+                    return
+                cfg = DvolDetectorConfig(asset="BTC", timeframe="1h", days=60)
+                payload = detect_dvol_variation(cfg)
+                only_alerts = _env_bool("VOL_NOTIFY_ALERTS_ONLY", True)
+                if only_alerts and payload.get("dvol_state") == "NEUTRAL":
+                    print("[scheduler] Vol NEUTRAL — skipped (VOL_NOTIFY_ALERTS_ONLY=true)", flush=True)
+                    return
+                msg = format_dvol_signal(payload)
+                resp = requests.post(webhook, json={"content": msg}, timeout=10)
+                resp.raise_for_status()
+                print(f"[scheduler] Vol signal sent ({payload.get('dvol_state')})", flush=True)
+            except Exception as e:
+                print(f"[scheduler] Vol notify failed: {e}", flush=True)
+
+        scheduler.add_job(_vol_notify_job, "cron", hour=f"*/{vol_interval}", minute=vol_minute)
+
     # Fractal detection : toutes les heures, 24/7 — un job par paire
     fractal_enabled = _env_bool("FRACTAL_ENABLED", True)
     fractal_interval = int(os.getenv("FRACTAL_INTERVAL_HOURS", "1"))
@@ -940,6 +972,98 @@ def ta_notify_v2():
         }
     except Exception as e:
         raise HTTPException(500, f"TA notify failed: {e}")
+
+
+# ==================== VOL SIGNAL ====================
+
+@app.get("/api/vol/snapshot")
+def get_vol_snapshot(
+    asset: str = Query("BTC"),
+    timeframe: str = Query("1h"),
+    days: int = Query(60),
+):
+    """
+    Snapshot complet du signal de volatilité :
+    DVOL state + Deribit signal + options snapshot.
+    Cache TTL 15 min.
+    """
+    cache_key = f"vol_{asset}_{timeframe}_{days}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    result: dict = {}
+
+    # ── DVOL ────────────────────────────────────────────────────
+    try:
+        from analysis.deribit_futures.dvol import DvolDetectorConfig, detect_dvol_variation
+        cfg = DvolDetectorConfig(asset=asset.upper(), timeframe=timeframe, days=days)
+        dvol = detect_dvol_variation(cfg)
+        dvol.pop("frame", None)  # DataFrame non sérialisable
+        result["dvol"] = _clean_json_record(dvol)
+    except Exception as e:
+        result["dvol"] = {"error": str(e)}
+
+    # ── Deribit Signal ───────────────────────────────────────────
+    try:
+        from analysis.deribit_futures.signal import SignalConfig, build_deribit_signal
+        sig = build_deribit_signal(SignalConfig(asset=asset.upper(), timeframe=timeframe, days=90))
+        result["signal"] = _clean_json_record(sig)
+    except Exception as e:
+        result["signal"] = {"error": str(e)}
+
+    # ── Vol premium (IV ATM vs realized vol) ─────────────────────
+    try:
+        iv_atm = result.get("signal", {}).get("options", {}).get("iv_atm")
+        realized = result.get("signal", {}).get("realized_vol_annual")
+        if iv_atm and realized:
+            premium = round(float(iv_atm) - float(realized), 4)
+            result["vol_premium"] = {
+                "iv_atm": round(float(iv_atm), 4),
+                "realized_vol": round(float(realized), 4),
+                "premium": premium,
+                "bias": "SELL_VOL" if premium > 0.05 else "BUY_VOL" if premium < -0.05 else "NEUTRAL",
+            }
+        else:
+            result["vol_premium"] = None
+    except Exception:
+        result["vol_premium"] = None
+
+    result["timestamp"] = datetime.utcnow().isoformat()
+    _cache_set(cache_key, result)
+    return result
+
+
+@app.post("/api/vol/discord/test")
+def test_vol_discord():
+    """Envoie un signal DVOL de test sur Discord."""
+    webhook = (
+        os.getenv("DISCORD_WEBHOOK_VOL_URL")
+        or os.getenv("DISCORD_WEBHOOK_DVOL_URL")
+        or os.getenv("DISCORD_WEBHOOK_DERIBIT_URL")
+        or os.getenv("DISCORD_WEBHOOK_URL", "")
+    )
+    if not webhook:
+        raise HTTPException(503, "Aucun webhook Discord configuré pour Vol Signal.")
+    try:
+        from analysis.deribit_futures.dvol import DvolDetectorConfig, detect_dvol_variation, format_dvol_signal
+        cfg = DvolDetectorConfig(asset="BTC", timeframe="1h", days=60)
+        payload = detect_dvol_variation(cfg)
+        msg = format_dvol_signal(payload)
+        resp = requests.post(webhook, json={"content": msg}, timeout=10)
+        resp.raise_for_status()
+        return {
+            "status": "sent",
+            "dvol_state": payload.get("dvol_state"),
+            "risk_regime": payload.get("risk_regime"),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(502, f"Échec: {e}")
+
+# ==================== END VOL SIGNAL ====================
 
 
 # ==================== FRACTAL DETECTION ====================
