@@ -168,10 +168,10 @@ async def lifespan(app: FastAPI):
         # Résolution toutes les heures 24/7 (les trades peuvent expirer la nuit)
         scheduler.add_job(_ta_resolve_job, "cron", minute=5)
 
-    # Vol Signal (DVOL) : toutes les 4h, 24/7
+    # Vol Signal (DVOL) : toutes les heures, alerte si état != NEUTRAL ET intensité > seuil
     vol_enabled = _env_bool("VOL_NOTIFY_ENABLED", True)
-    vol_interval = int(os.getenv("VOL_NOTIFY_INTERVAL_HOURS", "4"))
     vol_minute = int(os.getenv("VOL_NOTIFY_MINUTE", "5"))
+    vol_intensity_threshold = float(os.getenv("VOL_INTENSITY_THRESHOLD", "0.4"))
     if vol_enabled:
         def _vol_notify_job():
             try:
@@ -187,18 +187,22 @@ async def lifespan(app: FastAPI):
                     return
                 cfg = DvolDetectorConfig(asset="BTC", timeframe="1h", days=60)
                 payload = detect_dvol_variation(cfg)
-                only_alerts = _env_bool("VOL_NOTIFY_ALERTS_ONLY", True)
-                if only_alerts and payload.get("dvol_state") == "NEUTRAL":
-                    print("[scheduler] Vol NEUTRAL — skipped (VOL_NOTIFY_ALERTS_ONLY=true)", flush=True)
+                state = payload.get("dvol_state", "NEUTRAL")
+                intensity = float(payload.get("intensity", 0.0))
+                if state == "NEUTRAL":
+                    print(f"[scheduler] Vol NEUTRAL — skipped", flush=True)
+                    return
+                if intensity < vol_intensity_threshold:
+                    print(f"[scheduler] Vol {state} intensity={intensity:.2f} < {vol_intensity_threshold} — skipped", flush=True)
                     return
                 msg = format_dvol_signal(payload)
                 resp = requests.post(webhook, json={"content": msg}, timeout=10)
                 resp.raise_for_status()
-                print(f"[scheduler] Vol signal sent ({payload.get('dvol_state')})", flush=True)
+                print(f"[scheduler] Vol signal sent ({state}, intensity={intensity:.2f})", flush=True)
             except Exception as e:
                 print(f"[scheduler] Vol notify failed: {e}", flush=True)
 
-        scheduler.add_job(_vol_notify_job, "cron", hour=f"*/{vol_interval}", minute=vol_minute)
+        scheduler.add_job(_vol_notify_job, "cron", hour="*", minute=vol_minute)
 
     # Fractal detection : toutes les heures, 24/7 — un job par paire
     fractal_enabled = _env_bool("FRACTAL_ENABLED", True)
