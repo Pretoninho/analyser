@@ -83,7 +83,7 @@ function probITM(S: number, K: number, T: number, r: number, q: number, v: numbe
 
 type LegSide = "long" | "short"
 type OptType = "call" | "put"
-type Tab = "advisor" | "pricer" | "position" | "probas" | "gestion" | "aide"
+type Tab = "advisor" | "pricer" | "position" | "probas" | "gestion" | "aide" | "regles"
 
 // ── Gestion — types ───────────────────────────────────────────────────────────
 
@@ -172,6 +172,41 @@ function IvpGauge({ ivp, ivpPct }: { ivp: number | null; ivpPct: number | null }
       </div>
     </div>
   )
+}
+
+// Guide contextuel pour les alertes Gestion
+function alertGuide(a: Alert): { rule: string; explain: string; showRoll: boolean } | null {
+  if (a.label === "Stop Loss") return {
+    rule: "Règle des 2× la prime",
+    explain: "La prime a doublé contre toi — le marché invalide ta thèse. Racheter maintenant pour limiter la perte à 1× la prime initiale. Chaque heure d'attente aggrave l'exposition au gamma.",
+    showRoll: false,
+  }
+  if (a.label === "TP atteint") return {
+    rule: "Règle des 50% profit",
+    explain: "Tu as encaissé la moitié de la prime maximale. Racheter maintenant : libère le capital et élimine le risque de retournement brutal sur la deuxième moitié.",
+    showRoll: false,
+  }
+  if (a.label === "Zone gamma critique") return {
+    rule: "Règle du gamma terminal (< 7 DTE)",
+    explain: "Le gamma explose sous 7 DTE. Un gap de 3-5% peut retourner une position gagnante en quelques heures. Fermer immédiatement ou rouler vers l'échéance suivante.",
+    showRoll: true,
+  }
+  if (a.label.startsWith("DTE")) return {
+    rule: "Roll à 21 DTE",
+    explain: "La zone optimale pour rouler est 14-21 DTE. Si la position est profitable, racheter et ouvrir un nouveau cycle à 30-45 DTE pour recharger le theta.",
+    showRoll: true,
+  }
+  if (a.label === "Delta drift") return {
+    rule: "Règle du delta 0.30",
+    explain: "Le delta a dérivé de plus de 0.20 depuis l'entrée. Ta position n'est plus au niveau de risque initial. Rouler le strike vers un nouveau 25δ ou acheter un hedge delta.",
+    showRoll: true,
+  }
+  if (a.label.includes("touché") || a.label.includes("menacé")) return {
+    rule: "Strike en danger — Roll immédiat",
+    explain: "Le spot s'approche de ton strike vendu. La probabilité d'assignation augmente exponentiellement. Rouler vers un strike plus OTM avant que le delta passe > 0.40.",
+    showRoll: true,
+  }
+  return null
 }
 
 interface Leg {
@@ -614,9 +649,9 @@ export default function OptionsPage() {
 
       {/* Tabs */}
       <div className="flex gap-2">
-        {(["advisor", "pricer", "position", "probas", "gestion", "aide"] as Tab[]).map(t => (
+        {(["advisor", "pricer", "position", "probas", "gestion", "aide", "regles"] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)} className={btn(tab === t)}>
-            {t === "advisor" ? "Advisor" : t === "pricer" ? "Pricer" : t === "position" ? "Position" : t === "probas" ? "Probas" : t === "gestion" ? "Gestion" : "? Aide"}
+            {t === "advisor" ? "Advisor" : t === "pricer" ? "Pricer" : t === "position" ? "Position" : t === "probas" ? "Probas" : t === "gestion" ? "Gestion" : t === "aide" ? "? Aide" : "⚠ Règles"}
           </button>
         ))}
       </div>
@@ -1336,6 +1371,7 @@ export default function OptionsPage() {
                 const textColors: Record<AlertLevel, string> = {
                   URGENT: "text-rose-300", WARNING: "text-amber-300", SUCCESS: "text-emerald-300", INFO: "text-slate-400",
                 }
+                const guide = alertGuide(a)
                 return (
                   <div key={i} className={`rounded-lg border p-4 ${colors[a.level]}`}>
                     <div className="flex items-start justify-between">
@@ -1347,6 +1383,20 @@ export default function OptionsPage() {
                       </div>
                       <p className="text-xs text-slate-500 text-right ml-4 shrink-0">{a.action}</p>
                     </div>
+                    {guide && (
+                      <div className="mt-3 pt-3 border-t border-white/10">
+                        <p className="text-[11px] font-semibold text-slate-300 mb-0.5">📖 {guide.rule}</p>
+                        <p className="text-[11px] text-slate-500 leading-5">{guide.explain}</p>
+                        {guide.showRoll && gLegs.length > 0 && (
+                          <button
+                            onClick={() => openRollSimulator(gLegs.find(l => a.detail.includes(String(l.strike))) ?? gLegs[0])}
+                            className="mt-2 text-[11px] px-3 py-1 rounded border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 transition-colors"
+                          >
+                            → Simuler un roll
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -1358,6 +1408,398 @@ export default function OptionsPage() {
               Entrez les legs de votre position ou utilisez "Pré-remplir depuis l'Advisor"
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── TAB RÈGLES ── */}
+      {tab === "regles" && (
+        <div className="space-y-5 max-w-3xl">
+
+          {/* Checklist pré-trade */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-base font-semibold text-white mb-1">Checklist avant d'ouvrir une position</h2>
+            <p className="text-xs text-slate-500 mb-4">Cocher chaque condition avant d'entrer. Si une case manque → attendre.</p>
+            <div className="space-y-2">
+              {[
+                { key: "ivp",    label: "IVP > 50% — vol chère (favorable vendeur)",  hint: advisor?.ivp_pct != null ? `Actuel : ${advisor.ivp_pct.toFixed(0)}% — ${advisor.ivp_pct > 50 ? "✓ OK" : "✗ Vol pas encore chère"}` : "Vérifier dans l'Advisor" },
+                { key: "timing", label: "Score de timing > 60",                        hint: advisor?.timing?.score != null ? `Actuel : ${advisor.timing.score}/100 — ${advisor.timing.score > 60 ? "✓ OK" : "✗ Attendre"}` : "Vérifier dans l'Advisor" },
+                { key: "dte",    label: "DTE cible 30-45 jours",                       hint: advisor?.dte_days != null ? `Advisor suggère : ${advisor.dte_days}j — ${advisor.dte_days >= 25 && advisor.dte_days <= 50 ? "✓ OK" : "✗ Hors zone optimale"}` : "30-45j recommandé" },
+                { key: "kelly",  label: "Sizing Kelly calculé et capital vérifié",    hint: `Capital : ${capital.toLocaleString()}$ · Max risque Kelly à vérifier dans l'Advisor` },
+                { key: "strike", label: "Strike ≥ 1σ OTM du spot actuel",            hint: `Expected move ≈ ±${(spot * iv * Math.sqrt(T)).toFixed(0)} · Strike OTM doit dépasser ${(spot - spot * iv * Math.sqrt(T)).toFixed(0)} (put) ou ${(spot + spot * iv * Math.sqrt(T)).toFixed(0)} (call)` },
+                { key: "risk",   label: "Risque max ≤ 2% du capital total",          hint: `Max ${(capital * 0.02).toFixed(0)}$ de perte max sur ${capital.toLocaleString()}$ de capital` },
+              ].map(item => (
+                <label key={item.key} className="flex items-start gap-3 py-2 border-b border-white/[0.04] cursor-pointer group">
+                  <div className="mt-0.5 shrink-0" onClick={() => toggleCheck(item.key)}>
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                      checks[item.key] ? "bg-emerald-500 border-emerald-500" : "border-white/20 group-hover:border-white/40"
+                    }`}>
+                      {checks[item.key] && <span className="text-white text-[10px] font-bold">✓</span>}
+                    </div>
+                  </div>
+                  <div onClick={() => toggleCheck(item.key)}>
+                    <p className={`text-sm transition-colors ${checks[item.key] ? "text-emerald-300 line-through opacity-60" : "text-slate-200"}`}>{item.label}</p>
+                    <p className="text-[10px] text-slate-500">{item.hint}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+            {(() => {
+              const total = 6
+              const done = Object.values(checks).filter(Boolean).length
+              const allOk = done === total
+              return (
+                <div className={`mt-4 rounded-lg px-4 py-3 border ${allOk ? "bg-emerald-500/10 border-emerald-500/30" : "bg-amber-500/10 border-amber-500/30"}`}>
+                  <p className={`text-sm font-semibold ${allOk ? "text-emerald-300" : "text-amber-300"}`}>
+                    {allOk ? "✓ Toutes conditions remplies — position autorisée" : `${done}/${total} conditions — ${total - done} manquante${total - done > 1 ? "s" : ""}`}
+                  </p>
+                  {!allOk && <p className="text-xs text-slate-500 mt-0.5">Compléter les cases manquantes ou attendre des conditions plus favorables.</p>}
+                </div>
+              )
+            })()}
+            <button onClick={() => setChecks({})} className="mt-3 text-xs text-slate-600 hover:text-slate-400">Réinitialiser la checklist</button>
+          </div>
+
+          {/* Simulateur de Roll */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-base font-semibold text-white mb-1">Simulateur de Roll</h2>
+            <p className="text-xs text-slate-500 mb-4">
+              Un roll = racheter l'option actuelle + vendre une nouvelle. Valide seulement si le crédit net est positif ou nul.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <p className="text-[11px] text-slate-400 uppercase tracking-wider mb-3">Position actuelle (à racheter)</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className={label}>Type</label>
+                    <div className="flex gap-1">
+                      {(["put", "call"] as OptType[]).map(t => (
+                        <button key={t} onClick={() => setRollType(t)} className={`${btn(rollType === t)} flex-1`}>{t.toUpperCase()}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className={label}>Strike actuel</label>
+                    <input className={inp} type="number" value={rollStrikeFrom} onChange={e => setRollStrikeFrom(+e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={label}>DTE restant (jours)</label>
+                    <input className={inp} type="number" value={rollDteFrom} min={0} onChange={e => setRollDteFrom(+e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={label}>Prime reçue à l'ouverture ($)</label>
+                    <input className={inp} type="number" value={rollPremiumReceived} min={0} onChange={e => setRollPremiumReceived(+e.target.value)} />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] text-slate-400 uppercase tracking-wider mb-3">Nouvelle position (à vendre)</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className={label}>Strike cible</label>
+                    <input className={inp} type="number" value={rollStrikeTo} onChange={e => setRollStrikeTo(+e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={label}>DTE cible (jours)</label>
+                    <input className={inp} type="number" value={rollDteTo} min={1} onChange={e => setRollDteTo(+e.target.value)} />
+                  </div>
+                  <div className="pt-6 space-y-1">
+                    <p className="text-[10px] text-slate-500">Même type que la position actuelle : <span className="text-slate-300 font-semibold">{rollType.toUpperCase()}</span></p>
+                    <p className="text-[10px] text-slate-600">IV utilisée : {ivPct.toFixed(1)}% · Spot : {spot.toLocaleString()} (paramètres globaux)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {(() => {
+              const buyBack   = bsPrice(spot, rollStrikeFrom, Math.max(rollDteFrom / 365, 0.001), r, q, iv, rollType === "call")
+              const newSell   = bsPrice(spot, rollStrikeTo, Math.max(rollDteTo / 365, 0.001), r, q, iv, rollType === "call")
+              const netCredit = newSell - buyBack
+              const closePnl  = rollPremiumReceived - buyBack
+              const isCredit  = netCredit >= -0.01
+              return (
+                <div className="mt-5 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg px-4 py-3">
+                      <p className="text-[11px] text-slate-500">Coût rachat (BS)</p>
+                      <p className="text-lg font-semibold mono text-rose-300">−${buyBack.toFixed(2)}</p>
+                      <p className="text-[10px] text-slate-600">Prix théorique de clôture</p>
+                    </div>
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-3">
+                      <p className="text-[11px] text-slate-500">Revente nouvelle (BS)</p>
+                      <p className="text-lg font-semibold mono text-emerald-300">+${newSell.toFixed(2)}</p>
+                      <p className="text-[10px] text-slate-600">Prime de la nouvelle position</p>
+                    </div>
+                    <div className={`rounded-lg px-4 py-3 border ${isCredit ? "bg-emerald-500/10 border-emerald-500/40" : "bg-rose-500/10 border-rose-500/40"}`}>
+                      <p className="text-[11px] text-slate-500">Crédit net du roll</p>
+                      <p className={`text-lg font-semibold mono ${isCredit ? "text-emerald-300" : "text-rose-300"}`}>
+                        {netCredit >= 0 ? "+" : ""}{netCredit.toFixed(2)}
+                      </p>
+                      <p className={`text-[10px] font-semibold mt-0.5 ${isCredit ? "text-emerald-400" : "text-rose-400"}`}>
+                        {isCredit ? "✓ Roll valide" : "✗ Roll à éviter (débit)"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-white/[0.02] rounded-lg px-4 py-3 text-xs">
+                    <span className="text-slate-500">P&L réalisé sur la partie close : </span>
+                    <span className={`mono font-semibold ${closePnl >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                      {closePnl >= 0 ? "+" : ""}{closePnl.toFixed(2)}$
+                    </span>
+                    <span className="text-slate-600 ml-2">(prime reçue {rollPremiumReceived}$ − rachat {buyBack.toFixed(2)}$)</span>
+                  </div>
+                </div>
+              )
+            })()}
+            <div className="mt-4 bg-white/[0.02] border border-white/5 rounded-lg px-4 py-3">
+              <p className="text-[11px] font-semibold text-slate-300 mb-1">📖 Règle d'or du roll</p>
+              <p className="text-xs text-slate-500 leading-5">Ne rouler que si le crédit net est positif ou nul. Payer pour rouler (débit) = reporter le problème en augmentant le risque total engagé. Mieux vaut couper une perte définie que d'ouvrir une perte indéfinie plus grande.</p>
+            </div>
+          </div>
+
+          {/* Règles non-négociables */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-base font-semibold text-white mb-4">5 règles non-négociables</h2>
+            <div className="space-y-3">
+              {[
+                {
+                  num: "1", color: "bg-rose-500",
+                  rule: "Couper à 2× la prime",
+                  detail: "Si la perte latente atteint 2 fois la prime encaissée, fermer sans exception. Racheter l'option au prix actuel. La perte nette est alors limitée à 1× la prime initiale.",
+                  example: "Prime encaissée : 500$. Prime actuelle : 1 000$ → racheter, perte nette = −500$. Sans règle : prime peut exploser à 5 000$, 10 000$."
+                },
+                {
+                  num: "2", color: "bg-amber-500",
+                  rule: "Prendre profit à 50% de la prime",
+                  detail: "Racheter quand la prime a perdu 50% de sa valeur. Libère le capital, réduit le temps d'exposition au risque gamma, et évite le retournement sur la deuxième moitié.",
+                  example: "Prime encaissée : 500$. Racheter à 250$ → profit +250$ réalisé, position fermée, capital libéré."
+                },
+                {
+                  num: "3", color: "bg-orange-500",
+                  rule: "Fermer ou rouler avant 21 DTE",
+                  detail: "Le gamma s'accélère exponentiellement sous 21 DTE. Un mouvement de 2% peut générer plus de perte en 1 jour qu'en 2 semaines. Rouler à 30-45 DTE si encore en perte.",
+                  example: "Position à 15 DTE, profitable → racheter et vendre un nouveau cycle à 45 DTE (recharge theta)."
+                },
+                {
+                  num: "4", color: "bg-violet-500",
+                  rule: "Ne jamais ajouter sur une position perdante",
+                  detail: "L'averaging down multiplie le risque non-linéairement. Avec les options, doubler une position en perte peut transformer une perte limitée en perte catastrophique.",
+                  example: "Short Put en perte → ne pas vendre un 2ème put au même strike ou plus bas. Fermer la position, puis réévaluer."
+                },
+                {
+                  num: "5", color: "bg-cyan-500",
+                  rule: "Max 30% du capital engagé simultanément",
+                  detail: "BTC et ETH sont corrélés > 0.85. Vendre des options sur les deux est une seule position, pas deux. Le total des pertes max possibles ne doit pas dépasser 30% du capital.",
+                  example: `Capital : ${capital.toLocaleString()}$. Max risque cumulé options : ${(capital * 0.30).toFixed(0)}$. Au-delà, réduire ou couvrir.`
+                },
+              ].map(r => (
+                <div key={r.num} className="flex gap-4 p-4 border border-white/5 rounded-lg">
+                  <div className={`w-7 h-7 rounded-full ${r.color} flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5`}>
+                    {r.num}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white mb-1">{r.rule}</p>
+                    <p className="text-xs text-slate-400 leading-5 mb-1.5">{r.detail}</p>
+                    <p className="text-[11px] text-slate-600 italic border-l-2 border-white/10 pl-2">{r.example}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ── TAB RÈGLES ── */}
+      {tab === "regles" && (
+        <div className="space-y-5 max-w-3xl">
+
+          {/* Checklist pré-trade */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-base font-semibold text-white mb-1">Checklist avant d'ouvrir une position</h2>
+            <p className="text-xs text-slate-500 mb-4">Cocher chaque condition avant d'entrer. Si une case manque → attendre.</p>
+            <div className="space-y-2">
+              {[
+                { key: "ivp",    label: "IVP > 50% — vol chère (favorable vendeur)",  hint: advisor?.ivp_pct != null ? `Actuel : ${advisor.ivp_pct.toFixed(0)}% — ${advisor.ivp_pct > 50 ? "✓ OK" : "✗ Vol pas encore chère"}` : "Vérifier dans l'Advisor" },
+                { key: "timing", label: "Score de timing > 60",                        hint: advisor?.timing?.score != null ? `Actuel : ${advisor.timing.score}/100 — ${advisor.timing.score > 60 ? "✓ OK" : "✗ Attendre"}` : "Vérifier dans l'Advisor" },
+                { key: "dte",    label: "DTE cible 30-45 jours",                       hint: advisor?.dte_days != null ? `Advisor suggère : ${advisor.dte_days}j — ${advisor.dte_days >= 25 && advisor.dte_days <= 50 ? "✓ OK" : "✗ Hors zone optimale"}` : "30-45j recommandé" },
+                { key: "kelly",  label: "Sizing Kelly calculé et capital vérifié",     hint: `Capital : ${capital.toLocaleString()}$ · Max risque Kelly à vérifier dans l'Advisor` },
+                { key: "strike", label: "Strike ≥ 1σ OTM du spot actuel",             hint: `Expected move ≈ ±${(spot * iv * Math.sqrt(T)).toFixed(0)} · Put OTM recommandé sous ${(spot - spot * iv * Math.sqrt(T)).toFixed(0)}` },
+                { key: "risk",   label: "Risque max ≤ 2% du capital total",           hint: `Max ${(capital * 0.02).toFixed(0)}$ de perte max sur ${capital.toLocaleString()}$ de capital` },
+              ].map(item => (
+                <div key={item.key} className="flex items-start gap-3 py-2 border-b border-white/[0.04] cursor-pointer group" onClick={() => toggleCheck(item.key)}>
+                  <div className="mt-0.5 shrink-0">
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                      checks[item.key] ? "bg-emerald-500 border-emerald-500" : "border-white/20 group-hover:border-white/40"
+                    }`}>
+                      {checks[item.key] && <span className="text-white text-[10px] font-bold">✓</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <p className={`text-sm transition-colors ${checks[item.key] ? "text-emerald-300 line-through opacity-60" : "text-slate-200"}`}>{item.label}</p>
+                    <p className="text-[10px] text-slate-500">{item.hint}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {(() => {
+              const total = 6
+              const done = Object.values(checks).filter(Boolean).length
+              const allOk = done === total
+              return (
+                <div className={`mt-4 rounded-lg px-4 py-3 border ${allOk ? "bg-emerald-500/10 border-emerald-500/30" : "bg-amber-500/10 border-amber-500/30"}`}>
+                  <p className={`text-sm font-semibold ${allOk ? "text-emerald-300" : "text-amber-300"}`}>
+                    {allOk ? "✓ Toutes conditions remplies — position autorisée" : `${done}/${total} conditions — ${total - done} manquante${total - done > 1 ? "s" : ""}`}
+                  </p>
+                  {!allOk && <p className="text-xs text-slate-500 mt-0.5">Compléter les cases manquantes ou attendre des conditions plus favorables.</p>}
+                </div>
+              )
+            })()}
+            <button onClick={() => setChecks({})} className="mt-3 text-xs text-slate-600 hover:text-slate-400">Réinitialiser</button>
+          </div>
+
+          {/* Simulateur de Roll */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-base font-semibold text-white mb-1">Simulateur de Roll</h2>
+            <p className="text-xs text-slate-500 mb-4">
+              Un roll = racheter l'option actuelle + vendre une nouvelle. Valide seulement si le crédit net est positif ou nul.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <p className="text-[11px] text-slate-400 uppercase tracking-wider mb-3">Position actuelle (à racheter)</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className={label}>Type</label>
+                    <div className="flex gap-1">
+                      {(["put", "call"] as OptType[]).map(t => (
+                        <button key={t} onClick={() => setRollType(t)} className={`${btn(rollType === t)} flex-1`}>{t.toUpperCase()}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className={label}>Strike actuel</label>
+                    <input className={inp} type="number" value={rollStrikeFrom} onChange={e => setRollStrikeFrom(+e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={label}>DTE restant (jours)</label>
+                    <input className={inp} type="number" value={rollDteFrom} min={0} onChange={e => setRollDteFrom(+e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={label}>Prime reçue à l'ouverture ($)</label>
+                    <input className={inp} type="number" value={rollPremiumReceived} min={0} onChange={e => setRollPremiumReceived(+e.target.value)} />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] text-slate-400 uppercase tracking-wider mb-3">Nouvelle position (à vendre)</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className={label}>Strike cible</label>
+                    <input className={inp} type="number" value={rollStrikeTo} onChange={e => setRollStrikeTo(+e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={label}>DTE cible (jours)</label>
+                    <input className={inp} type="number" value={rollDteTo} min={1} onChange={e => setRollDteTo(+e.target.value)} />
+                  </div>
+                  <div className="pt-6 space-y-1">
+                    <p className="text-[10px] text-slate-500">Même type que la position actuelle : <span className="text-slate-300 font-semibold">{rollType.toUpperCase()}</span></p>
+                    <p className="text-[10px] text-slate-600">IV utilisée : {ivPct.toFixed(1)}% · Spot : {spot.toLocaleString()} (paramètres globaux)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {(() => {
+              const buyBack   = bsPrice(spot, rollStrikeFrom, Math.max(rollDteFrom / 365, 0.001), r, q, iv, rollType === "call")
+              const newSell   = bsPrice(spot, rollStrikeTo,   Math.max(rollDteTo / 365, 0.001), r, q, iv, rollType === "call")
+              const netCredit = newSell - buyBack
+              const closePnl  = rollPremiumReceived - buyBack
+              const isCredit  = netCredit >= -0.01
+              return (
+                <div className="mt-5 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg px-4 py-3">
+                      <p className="text-[11px] text-slate-500">Coût rachat (BS)</p>
+                      <p className="text-lg font-semibold mono text-rose-300">−${buyBack.toFixed(2)}</p>
+                      <p className="text-[10px] text-slate-600">Prix théorique de clôture</p>
+                    </div>
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-3">
+                      <p className="text-[11px] text-slate-500">Revente nouvelle (BS)</p>
+                      <p className="text-lg font-semibold mono text-emerald-300">+${newSell.toFixed(2)}</p>
+                      <p className="text-[10px] text-slate-600">Prime de la nouvelle position</p>
+                    </div>
+                    <div className={`rounded-lg px-4 py-3 border ${isCredit ? "bg-emerald-500/10 border-emerald-500/40" : "bg-rose-500/10 border-rose-500/40"}`}>
+                      <p className="text-[11px] text-slate-500">Crédit net du roll</p>
+                      <p className={`text-lg font-semibold mono ${isCredit ? "text-emerald-300" : "text-rose-300"}`}>
+                        {netCredit >= 0 ? "+" : ""}{netCredit.toFixed(2)}
+                      </p>
+                      <p className={`text-[10px] font-semibold mt-0.5 ${isCredit ? "text-emerald-400" : "text-rose-400"}`}>
+                        {isCredit ? "✓ Roll valide" : "✗ Roll à éviter (débit)"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-white/[0.02] rounded-lg px-4 py-3 text-xs">
+                    <span className="text-slate-500">P&L réalisé sur la partie close : </span>
+                    <span className={`mono font-semibold ${closePnl >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                      {closePnl >= 0 ? "+" : ""}{closePnl.toFixed(2)}$
+                    </span>
+                    <span className="text-slate-600 ml-2">(prime reçue {rollPremiumReceived}$ − rachat {buyBack.toFixed(2)}$)</span>
+                  </div>
+                </div>
+              )
+            })()}
+            <div className="mt-4 bg-white/[0.02] border border-white/5 rounded-lg px-4 py-3">
+              <p className="text-[11px] font-semibold text-slate-300 mb-1">📖 Règle d'or du roll</p>
+              <p className="text-xs text-slate-500 leading-5">Ne rouler que si le crédit net est positif ou nul. Payer pour rouler (débit) = reporter le problème en augmentant le risque total. Mieux vaut couper une perte définie que d'ouvrir une perte indéfinie plus grande.</p>
+            </div>
+          </div>
+
+          {/* Règles non-négociables */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-base font-semibold text-white mb-4">5 règles non-négociables</h2>
+            <div className="space-y-3">
+              {[
+                {
+                  num: "1", color: "bg-rose-500",
+                  rule: "Couper à 2× la prime",
+                  detail: "Si la perte latente atteint 2 fois la prime encaissée, fermer sans exception. Racheter l'option au prix actuel. La perte nette est alors limitée à 1× la prime initiale.",
+                  example: "Prime encaissée : 500$. Prime actuelle : 1 000$ → racheter, perte nette = −500$. Sans règle : prime peut exploser à 5 000$, 10 000$."
+                },
+                {
+                  num: "2", color: "bg-amber-500",
+                  rule: "Prendre profit à 50% de la prime",
+                  detail: "Racheter quand la prime a perdu 50% de sa valeur. Libère le capital, réduit le temps d'exposition au risque gamma, et évite le retournement sur la deuxième moitié.",
+                  example: "Prime encaissée : 500$. Racheter à 250$ → profit +250$ réalisé, position fermée, capital libéré."
+                },
+                {
+                  num: "3", color: "bg-orange-500",
+                  rule: "Fermer ou rouler avant 21 DTE",
+                  detail: "Le gamma s'accélère exponentiellement sous 21 DTE. Un mouvement de 2% peut générer plus de perte en 1 jour qu'en 2 semaines. Rouler à 30-45 DTE si encore en perte.",
+                  example: "Position à 15 DTE, profitable → racheter et vendre un nouveau cycle à 45 DTE (recharge theta)."
+                },
+                {
+                  num: "4", color: "bg-violet-500",
+                  rule: "Ne jamais ajouter sur une position perdante",
+                  detail: "L'averaging down multiplie le risque non-linéairement avec les options. Doubler une position en perte peut transformer une perte limitée en perte catastrophique.",
+                  example: "Short Put en perte → ne pas vendre un 2ème put au même strike ou plus bas. Fermer, puis réévaluer."
+                },
+                {
+                  num: "5", color: "bg-cyan-500",
+                  rule: "Max 30% du capital engagé simultanément",
+                  detail: "BTC et ETH sont corrélés > 0.85. Vendre des options sur les deux est une seule position, pas deux. Le total des pertes max possibles ne doit pas dépasser 30% du capital.",
+                  example: `Capital : ${capital.toLocaleString()}$. Max risque cumulé options : ${(capital * 0.30).toFixed(0)}$. Au-delà, réduire ou couvrir.`
+                },
+              ].map(r => (
+                <div key={r.num} className="flex gap-4 p-4 border border-white/5 rounded-lg">
+                  <div className={`w-7 h-7 rounded-full ${r.color} flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5`}>
+                    {r.num}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white mb-1">{r.rule}</p>
+                    <p className="text-xs text-slate-400 leading-5 mb-1.5">{r.detail}</p>
+                    <p className="text-[11px] text-slate-600 italic border-l-2 border-white/10 pl-2">{r.example}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       )}
 
