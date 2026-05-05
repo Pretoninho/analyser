@@ -87,6 +87,40 @@ type Tab = "advisor" | "pricer" | "position" | "probas"
 
 const ADVISOR_ASSETS = ["BTC", "ETH"]
 
+// ── Kelly Sizing ──────────────────────────────────────────────────────────────
+
+type KellyFraction = 1 | 0.5 | 0.25
+
+interface KellyParams { p: number; b: number; hint: string }
+
+function estimateKellyParams(strategy: string): KellyParams {
+  switch (strategy) {
+    case "SHORT_PUT":
+    case "SHORT_CALL":
+      return { p: 0.75, b: 0.50, hint: "25δ OTM · TP 50% prime / SL 2× prime" }
+    case "SHORT_STRANGLE":
+      return { p: 0.60, b: 0.50, hint: "Double 25δ · TP 50% / SL 2× prime totale" }
+    case "IRON_CONDOR":
+      return { p: 0.65, b: 0.70, hint: "Condor · risque limité par les ailes" }
+    case "LONG_STRADDLE":
+    case "LONG_STRANGLE":
+      return { p: 0.40, b: 2.50, hint: "Achat vol · gain illimité, perte = prime payée" }
+    case "BULL_CALL_SPREAD":
+    case "BEAR_PUT_SPREAD":
+      return { p: 0.50, b: 1.20, hint: "Spread débit · risque = prime payée" }
+    default:
+      return { p: 0.50, b: 1.00, hint: "Estimations neutres par défaut" }
+  }
+}
+
+function kellyCalc(p: number, b: number, fraction: KellyFraction, capital: number) {
+  const q = 1 - p
+  const fStar = (p * b - q) / b        // Kelly optimal brut
+  const fApplied = Math.max(0, fStar) * fraction
+  const maxRisk = capital * fApplied
+  return { fStar, fApplied, maxRisk, positive: fStar > 0 }
+}
+
 // Couleurs de l'advisor selon la stratégie
 function clsAdvisor(color: string) {
   if (color === "emerald") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
@@ -295,6 +329,23 @@ export default function OptionsPage() {
   const [advisor, setAdvisor] = useState<AdvisorResponse | null>(null)
   const [advisorLoading, setAdvisorLoading] = useState(false)
   const [advisorError, setAdvisorError] = useState<string | null>(null)
+
+  // Kelly sizing — persisté dans localStorage
+  const [capital, setCapital] = useState(10000)
+  const [kellyFraction, setKellyFraction] = useState<KellyFraction>(0.25)
+  const [winRateStr, setWinRateStr] = useState("")   // vide = auto depuis stratégie
+  const [ratioStr, setRatioStr] = useState("")       // vide = auto depuis stratégie
+
+  // Charger capital/fraction depuis localStorage au montage
+  useEffect(() => {
+    const c = localStorage.getItem("kelly_capital")
+    const f = localStorage.getItem("kelly_fraction")
+    if (c) setCapital(Number(c))
+    if (f) setKellyFraction(Number(f) as KellyFraction)
+  }, [])
+
+  const updateCapital = (v: number) => { setCapital(v); localStorage.setItem("kelly_capital", String(v)) }
+  const updateFraction = (v: KellyFraction) => { setKellyFraction(v); localStorage.setItem("kelly_fraction", String(v)) }
 
   // Pricer state
   const [strike, setStrike] = useState(78000)
@@ -570,6 +621,175 @@ export default function OptionsPage() {
                 {/* Rationale */}
                 <p className="text-xs opacity-70 leading-5">{advisor.rationale}</p>
               </div>
+
+              {/* ── Kelly Sizing ── */}
+              {advisor.strategy !== "WAIT" && (() => {
+                const estimated = estimateKellyParams(advisor.strategy)
+                const p = winRateStr ? Math.min(0.99, Math.max(0.01, parseFloat(winRateStr) / 100)) : estimated.p
+                const b = ratioStr  ? Math.max(0.01, parseFloat(ratioStr)) : estimated.b
+                const { fStar, fApplied, maxRisk, positive } = kellyCalc(p, b, kellyFraction, capital)
+                const fractionLabel = kellyFraction === 1 ? "Kelly plein" : kellyFraction === 0.5 ? "Demi-Kelly" : "Quart Kelly"
+
+                return (
+                  <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-sm font-semibold text-white">Sizing Kelly</h2>
+                      <span className="text-[10px] text-slate-500 mono">{fractionLabel}</span>
+                    </div>
+
+                    {/* Inputs */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div>
+                        <label className={label}>Capital ($)</label>
+                        <input className={inp} type="number" value={capital} min={100}
+                          onChange={e => updateCapital(+e.target.value)} />
+                      </div>
+                      <div>
+                        <label className={label}>Fraction Kelly</label>
+                        <div className="flex gap-1">
+                          {([0.25, 0.5, 1] as KellyFraction[]).map(f => (
+                            <button key={f} onClick={() => updateFraction(f)}
+                              className={`${btn(kellyFraction === f)} flex-1 text-[11px]`}>
+                              {f === 0.25 ? "1/4" : f === 0.5 ? "1/2" : "Full"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className={label}>Win rate % (vide = auto {(estimated.p * 100).toFixed(0)}%)</label>
+                        <input className={inp} type="number" value={winRateStr} placeholder={`${(estimated.p * 100).toFixed(0)}`}
+                          min={1} max={99} onChange={e => setWinRateStr(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className={label}>Ratio G/P (vide = auto {estimated.b.toFixed(2)})</label>
+                        <input className={inp} type="number" value={ratioStr} placeholder={`${estimated.b.toFixed(2)}`}
+                          min={0.01} step={0.1} onChange={e => setRatioStr(e.target.value)} />
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-slate-600 mb-3">{estimated.hint}</p>
+
+                    {/* Résultat */}
+                    {!positive ? (
+                      <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg px-4 py-3">
+                        <p className="text-sm text-rose-300 font-semibold">Kelly négatif — EV négatif</p>
+                        <p className="text-xs text-rose-400/70 mt-0.5">
+                          Cette stratégie dans ce contexte n'a pas d'espérance positive estimée. Ne pas trader.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-white/[0.03] rounded-lg px-4 py-3">
+                          <p className="text-[11px] text-slate-500">Kelly brut</p>
+                          <p className="text-lg font-semibold mono text-white">{(fStar * 100).toFixed(1)}%</p>
+                        </div>
+                        <div className="bg-white/[0.03] rounded-lg px-4 py-3">
+                          <p className="text-[11px] text-slate-500">{fractionLabel}</p>
+                          <p className="text-lg font-semibold mono text-indigo-300">{(fApplied * 100).toFixed(2)}%</p>
+                        </div>
+                        <div className={`rounded-lg px-4 py-3 border ${
+                          maxRisk > capital * 0.03 ? "bg-amber-500/10 border-amber-500/30" : "bg-emerald-500/10 border-emerald-500/30"
+                        }`}>
+                          <p className="text-[11px] text-slate-500">Max risque</p>
+                          <p className={`text-lg font-semibold mono ${maxRisk > capital * 0.03 ? "text-amber-300" : "text-emerald-300"}`}>
+                            ${maxRisk.toFixed(0)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {/* ── TP/SL sur prime ── */}
+              {advisor.strategy !== "WAIT" && advisor.iv_atm && advisor.spot && (() => {
+                const estimated = estimateKellyParams(advisor.strategy)
+                const p = winRateStr ? Math.min(0.99, Math.max(0.01, parseFloat(winRateStr) / 100)) : estimated.p
+                const b = ratioStr   ? Math.max(0.01, parseFloat(ratioStr)) : estimated.b
+                const { maxRisk, positive } = kellyCalc(p, b, kellyFraction, capital)
+
+                const isSeller = ["SHORT_PUT","SHORT_CALL","SHORT_STRANGLE","IRON_CONDOR"].includes(advisor.strategy)
+                const isBuyer  = ["LONG_STRADDLE","LONG_STRANGLE","BULL_CALL_SPREAD","BEAR_PUT_SPREAD"].includes(advisor.strategy)
+
+                // Estimation prime basée sur IV ATM et DTE (approximation BS ATM)
+                const iv = (advisor.iv_atm ?? 40) / 100
+                const T  = (advisor.dte_days ?? 21) / 365
+                const premiumEstimate = advisor.spot * iv * Math.sqrt(T / (2 * Math.PI))
+                const legs = advisor.legs.length
+
+                const premiumPerLeg   = premiumEstimate
+                const totalPremium    = premiumPerLeg * (isSeller ? legs : 1)
+
+                // Règles TP/SL
+                const tp = isSeller ? totalPremium * 0.50 : totalPremium * 2.0
+                const sl = isSeller ? totalPremium * 2.00 : totalPremium * 0.50
+
+                // Validation Kelly
+                const kellyOk = positive && sl <= maxRisk
+                const contractsOk = positive && maxRisk > 0
+                  ? Math.floor(maxRisk / sl)
+                  : 0
+
+                return (
+                  <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-sm font-semibold text-white">Seuils TP / SL</h2>
+                      <span className="text-[10px] text-slate-500">
+                        {isSeller ? "Vendeur de vol" : "Acheteur de vol"}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-4 py-3">
+                        <p className="text-[11px] text-slate-500">
+                          Take Profit — {isSeller ? "50% prime" : "2× prime"}
+                        </p>
+                        <p className="text-lg font-semibold mono text-emerald-300">
+                          +${tp.toFixed(0)}
+                        </p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">
+                          {isSeller ? "Racheter la position" : "Vendre la position"}
+                        </p>
+                      </div>
+                      <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg px-4 py-3">
+                        <p className="text-[11px] text-slate-500">
+                          Stop Loss — {isSeller ? "2× prime" : "50% prime"}
+                        </p>
+                        <p className="text-lg font-semibold mono text-rose-300">
+                          −${sl.toFixed(0)}
+                        </p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">
+                          Fermer immédiatement
+                        </p>
+                      </div>
+                      <div className={`rounded-lg px-4 py-3 border ${
+                        kellyOk
+                          ? "bg-indigo-500/10 border-indigo-500/30"
+                          : "bg-rose-500/10 border-rose-500/30"
+                      }`}>
+                        <p className="text-[11px] text-slate-500">Contrats Kelly</p>
+                        <p className={`text-lg font-semibold mono ${kellyOk ? "text-indigo-300" : "text-rose-300"}`}>
+                          {contractsOk} contrat{contractsOk > 1 ? "s" : ""}
+                        </p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">
+                          SL ≤ ${maxRisk.toFixed(0)} max
+                        </p>
+                      </div>
+                    </div>
+
+                    {!kellyOk && positive && (
+                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-2 text-xs text-amber-300">
+                        ⚠ SL estimé (${sl.toFixed(0)}) dépasse le max Kelly (${maxRisk.toFixed(0)}).
+                        {" "}Réduire la taille à 1 contrat minimum ou ajuster le capital.
+                      </div>
+                    )}
+
+                    <p className="text-[10px] text-slate-600 mt-3">
+                      Prime estimée ≈ ${premiumEstimate.toFixed(0)}/leg (BS ATM simplifié · à affiner avec le prix marché réel)
+                    </p>
+                  </div>
+                )
+              })()}
 
               {/* Disclaimer */}
               <p className="text-[10px] text-slate-600 text-center">
