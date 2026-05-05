@@ -411,6 +411,30 @@ export default function OptionsPage() {
     type: "put", action: "SELL", strike: 78000, entryPremium: 0,
   })
 
+  // Roll simulator state
+  const [rollType, setRollType] = useState<OptType>("put")
+  const [rollStrikeFrom, setRollStrikeFrom] = useState(78000)
+  const [rollDteFrom, setRollDteFrom] = useState(21)
+  const [rollPremiumReceived, setRollPremiumReceived] = useState(500)
+  const [rollStrikeTo, setRollStrikeTo] = useState(75000)
+  const [rollDteTo, setRollDteTo] = useState(45)
+
+  // Checklist pré-trade
+  const [checks, setChecks] = useState<Record<string, boolean>>({})
+  const toggleCheck = (k: string) => setChecks(c => ({ ...c, [k]: !c[k] }))
+
+  // Ouvrir le simulateur de roll depuis une alerte avec pré-remplissage
+  const openRollSimulator = useCallback((leg: GestionLeg) => {
+    setRollType(leg.type)
+    setRollStrikeFrom(leg.strike)
+    setRollDteFrom(gDteLeft)
+    setRollPremiumReceived(leg.entryPremium)
+    const step = leg.type === "put" ? 0.95 : 1.05
+    setRollStrikeTo(Math.round(leg.strike * step / 1000) * 1000)
+    setRollDteTo(45)
+    setTab("regles")
+  }, [gDteLeft])
+
   // Pré-remplir depuis l'Advisor
   const prefillFromAdvisor = useCallback(() => {
     if (!advisor || advisor.strategy === "WAIT") return
