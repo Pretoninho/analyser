@@ -94,15 +94,7 @@ def scan_and_notify_v2(symbol: str = None) -> bool:
 
         # Log signals en premier — indépendamment de Discord
         for sig in signals:
-            log_signal({
-                "timestamp": sig["timestamp"],
-                "direction": sig["direction"],
-                "regime": sig["regime"],
-                "entry_price": sig["entry_price"],
-                "confidence": sig["confidence"],
-                "vote_favorable": sig["vote_favorable"],
-                "vote_total": sig["vote_total"],
-            })
+            log_signal(sig)  # passe le dict complet du signal v2
         print(f"[ta_notify_v2] {len(signals)} signal(s) logged", flush=True)
 
         # Format et envoyer Discord (optionnel si webhook non configuré)

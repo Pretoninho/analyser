@@ -24,7 +24,7 @@ import pandas as pd
 
 from strategies.ta.config import TP_MULT, SL_MULT, TP_SL_ATR, MAX_BARS
 from strategies.ta.features import _atr
-from strategies.ta.live_runner import fetch_klines
+from strategies.ta.live_runner_v2 import fetch_klines
 
 SIGNALS_CSV = ROOT / "db" / "ta_signals.csv"
 
@@ -43,7 +43,12 @@ _COLS = [
 
 def _load() -> pd.DataFrame:
     if SIGNALS_CSV.exists():
-        return pd.read_csv(SIGNALS_CSV, dtype={"signal_id": str})
+        df = pd.read_csv(SIGNALS_CSV, dtype={"signal_id": str})
+        # Forcer les colonnes outcome en object pour éviter dtype float64 sur None
+        for col in ("outcome", "exit_price", "exit_time", "n_bars", "r_realized"):
+            if col in df.columns:
+                df[col] = df[col].astype(object)
+        return df
     return pd.DataFrame(columns=_COLS)
 
 
@@ -59,53 +64,57 @@ def _save(df: pd.DataFrame) -> None:
 def log_signal(result: dict) -> str:
     """
     Enregistre un signal TA dans ta_signals.csv.
-    result = dict retourné par live_runner.scan()
-
-    Retourne le signal_id.
+    Accepte le format v2 (live_runner_v2.scan_signals) :
+      result = {
+        timestamp, direction, regime, entry_price,
+        ema_state, ema_slope, swing, rsi_state, stoch_state, atr_state, vwap_state,
+        vote_total, vote_favorable, confidence
+      }
+    Retourne le signal_id (str) ou "" si données insuffisantes.
     """
-    direction   = result["trigger"]
-    last_price  = result["last_price"]
-    cs          = result["current_state"]
-    matches     = result["matches"]
-    last_bar    = result["last_bar_time"]
+    direction   = result.get("direction")
+    entry_price = result.get("entry_price", 0.0)
 
-    if not direction or not matches:
+    if not direction or not entry_price:
         return ""
 
-    # Calcul TP/SL à partir de l'ATR14 de la dernière bougie
-    df15 = result["df15_closed"]
-    atr_series = _atr(df15["high"], df15["low"], df15["close"], TP_SL_ATR)
-    atr_val    = float(atr_series.iloc[-1])
+    # TP/SL : on utilise l'ATR live au moment du signal
+    # On fetch les dernières bougies pour calculer l'ATR14
+    try:
+        df15_fresh = fetch_klines("15m", 50)
+        atr_series = _atr(df15_fresh["high"], df15_fresh["low"], df15_fresh["close"], TP_SL_ATR)
+        atr_val = float(atr_series.iloc[-1])
+    except Exception:
+        atr_val = 0.0
 
     if direction == "LONG":
-        tp = last_price + TP_MULT * atr_val
-        sl = last_price - SL_MULT * atr_val
+        tp = entry_price + TP_MULT * atr_val if atr_val else None
+        sl = entry_price - SL_MULT * atr_val if atr_val else None
     else:
-        tp = last_price - TP_MULT * atr_val
-        sl = last_price + SL_MULT * atr_val
+        tp = entry_price - TP_MULT * atr_val if atr_val else None
+        sl = entry_price + SL_MULT * atr_val if atr_val else None
 
-    top = matches[0]
     signal_id = str(uuid.uuid4())[:8]
 
     row = {
         "signal_id":   signal_id,
-        "timestamp":   last_bar,
+        "timestamp":   str(result.get("timestamp", "")),
         "direction":   direction,
-        "entry_price": round(last_price, 2),
-        "tp":          round(tp, 2),
-        "sl":          round(sl, 2),
+        "entry_price": round(entry_price, 2),
+        "tp":          round(tp, 2) if tp else None,
+        "sl":          round(sl, 2) if sl else None,
         "atr_at_entry": round(atr_val, 4),
-        "regime":      cs.get("regime", ""),
-        "ema_state":   cs.get("ema_state", ""),
-        "swing":       cs.get("swing", ""),
-        "rsi_state":   cs.get("rsi_state", ""),
-        "stoch_state": cs.get("stoch_state", ""),
-        "atr_state":   cs.get("atr_state", ""),
-        "vwap_state":  cs.get("vwap_state", ""),
-        "n_matches":   len(matches),
-        "top_params":  top["params"],
-        "top_wr_oos":  round(top["wr_OOS"], 4),
-        "top_exp_oos": round(top["exp_R_OOS"], 4),
+        "regime":      result.get("regime", ""),
+        "ema_state":   result.get("ema_state", ""),
+        "swing":       result.get("swing", ""),
+        "rsi_state":   result.get("rsi_state", ""),
+        "stoch_state": result.get("stoch_state", ""),
+        "atr_state":   result.get("atr_state", ""),
+        "vwap_state":  result.get("vwap_state", ""),
+        "n_matches":   result.get("vote_total", 0),
+        "top_params":  f"votes={result.get('vote_favorable', 0)}/{result.get('vote_total', 0)}",
+        "top_wr_oos":  round(result.get("confidence", 0.0), 4),
+        "top_exp_oos": round(result.get("confidence", 0.0), 4),
         "outcome":     "pending",
         "exit_price":  None,
         "exit_time":   None,
@@ -116,8 +125,10 @@ def log_signal(result: dict) -> str:
     df = _load()
     df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
     _save(df)
-    print(f"[signal_logger] Signal logged: {signal_id} | {direction} @ {last_price:.2f} "
-          f"TP={tp:.2f} SL={sl:.2f}", flush=True)
+    tp_str = f"{tp:.2f}" if tp else "N/A"
+    sl_str = f"{sl:.2f}" if sl else "N/A"
+    print(f"[signal_logger] Signal logged: {signal_id} | {direction} @ {entry_price:.2f} "
+          f"TP={tp_str} SL={sl_str}", flush=True)
     return signal_id
 
 
@@ -207,7 +218,7 @@ def resolve_pending(symbol: str = "BTCUSDT") -> int:
 
         df.at[idx, "outcome"]    = outcome
         df.at[idx, "exit_price"] = round(exit_price, 2)
-        df.at[idx, "exit_time"]  = exit_time
+        df.at[idx, "exit_time"]  = str(exit_time)
         df.at[idx, "n_bars"]     = n_bars
         df.at[idx, "r_realized"] = r_realized
         resolved += 1
