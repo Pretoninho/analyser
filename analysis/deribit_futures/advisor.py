@@ -234,6 +234,150 @@ def _build_rationale(
     return f"{meta.get('verb', strategy)}. " + " · ".join(parts) + "."
 
 
+# ── Score de timing d'entrée ─────────────────────────────────────────────────
+
+def _compute_timing_score(
+    strategy: str,
+    ivp: float | None,
+    vol_regime: str,
+    dvol_state: str,
+    dvol_roc_24h: float | None,
+    dvol_z: float | None,
+    skew: float | None,
+    vol_premium: float | None,   # décimal (ex: 0.12 = +12%)
+    term_1w: float | None,
+    term_1m: float | None,
+) -> dict:
+    """
+    Score de timing 0-100 : mesure si le moment est favorable pour entrer.
+    Composantes indépendantes, chacune contribue à hauteur de son poids.
+    """
+    is_seller = strategy in {"SHORT_PUT", "SHORT_CALL", "SHORT_STRANGLE", "IRON_CONDOR"}
+    is_buyer  = strategy in {"LONG_STRADDLE", "LONG_STRANGLE", "BULL_CALL_SPREAD", "BEAR_PUT_SPREAD"}
+    score = 0
+    details: list[dict] = []
+
+    # 1. IVP extrême — 30 pts
+    # Vendeur : IVP > 70 → bon timing. Acheteur : IVP < 30 → bon timing.
+    if ivp is not None:
+        if is_seller and ivp > 0.85:
+            pts = 30
+        elif is_seller and ivp > 0.70:
+            pts = 22
+        elif is_buyer and ivp < 0.15:
+            pts = 30
+        elif is_buyer and ivp < 0.30:
+            pts = 22
+        elif is_seller and ivp < 0.40:
+            pts = 0
+        elif is_buyer and ivp > 0.60:
+            pts = 0
+        else:
+            pts = 8
+        score += pts
+        details.append({"label": "IVP", "pts": pts, "max": 30,
+                         "note": f"IVP {ivp*100:.0f}% — {'favorable' if pts >= 22 else 'neutre' if pts >= 8 else 'défavorable'}"})
+    else:
+        score += 10  # pas de pénalité si DVOL indisponible
+        details.append({"label": "IVP", "pts": 10, "max": 30, "note": "DVOL indisponible — score neutre"})
+
+    # 2. Momentum DVOL (ROC 24h) — 25 pts
+    # Vendeur : vendre dans la baisse de vol (vol qui redescend après un pic) = idéal
+    # Acheteur : acheter quand vol monte (momentum vol)
+    if dvol_roc_24h is not None:
+        if is_seller and dvol_roc_24h < -0.03:
+            pts = 25   # vol qui redescend → bon pour vendre
+        elif is_seller and dvol_roc_24h < 0:
+            pts = 15
+        elif is_seller and dvol_roc_24h > 0.05:
+            pts = 0    # vol monte → risqué pour vendeur
+        elif is_seller:
+            pts = 8
+        elif is_buyer and dvol_roc_24h > 0.05:
+            pts = 25   # vol monte → bon pour acheter
+        elif is_buyer and dvol_roc_24h > 0:
+            pts = 15
+        elif is_buyer and dvol_roc_24h < -0.03:
+            pts = 0
+        else:
+            pts = 8
+        score += pts
+        details.append({"label": "DVOL ROC 24h", "pts": pts, "max": 25,
+                         "note": f"ROC {dvol_roc_24h:+.1%} — {'favorable' if pts >= 20 else 'neutre' if pts >= 8 else 'défavorable'}"})
+    else:
+        score += 10
+        details.append({"label": "DVOL ROC 24h", "pts": 10, "max": 25, "note": "Données DVOL indisponibles"})
+
+    # 3. Vol premium (IV - Réalisée) — 25 pts
+    # Vendeur : premium positif (IV > RV) → options chères → vendre
+    # Acheteur : premium négatif (IV < RV) → options bon marché → acheter
+    if vol_premium is not None:
+        if is_seller and vol_premium > 0.10:
+            pts = 25
+        elif is_seller and vol_premium > 0.05:
+            pts = 15
+        elif is_seller and vol_premium < 0:
+            pts = 0
+        elif is_seller:
+            pts = 8
+        elif is_buyer and vol_premium < -0.10:
+            pts = 25
+        elif is_buyer and vol_premium < -0.05:
+            pts = 15
+        elif is_buyer and vol_premium > 0.05:
+            pts = 0
+        else:
+            pts = 8
+        score += pts
+        details.append({"label": "Vol premium", "pts": pts, "max": 25,
+                         "note": f"Premium {vol_premium:+.1%} — {'favorable' if pts >= 20 else 'neutre' if pts >= 8 else 'défavorable'}"})
+    else:
+        score += 10
+        details.append({"label": "Vol premium", "pts": 10, "max": 25, "note": "Vol premium indisponible"})
+
+    # 4. Term structure — 20 pts
+    # Backwardation (1W > 1M) → stress court terme → bon pour vendeur court terme
+    # Contango (1W < 1M) → normal → bon pour acheteur long terme
+    if term_1w is not None and term_1m is not None:
+        slope = term_1w - term_1m   # positif = backwardation
+        if is_seller and slope > 2:
+            pts = 20   # forte backwardation → prime courte échéance élevée
+        elif is_seller and slope > 0:
+            pts = 12
+        elif is_seller and slope < -3:
+            pts = 0    # forte contango → iv courte faible → peu à vendre
+        elif is_seller:
+            pts = 6
+        elif is_buyer and slope < -3:
+            pts = 20   # forte contango → IV long terme élevée vs court terme
+        elif is_buyer and slope < 0:
+            pts = 12
+        elif is_buyer and slope > 2:
+            pts = 0
+        else:
+            pts = 6
+        score += pts
+        struct = "backwardation" if slope > 0 else "contango"
+        details.append({"label": "Term structure", "pts": pts, "max": 20,
+                         "note": f"1W {term_1w:.1f}% vs 1M {term_1m:.1f}% ({struct} {slope:+.1f}pts)"})
+    else:
+        score += 8
+        details.append({"label": "Term structure", "pts": 8, "max": 20, "note": "Term structure indisponible"})
+
+    score = min(100, max(0, score))
+
+    if score >= 75:
+        label, color = "ENTRER MAINTENANT", "emerald"
+    elif score >= 55:
+        label, color = "CONDITIONS FAVORABLES", "cyan"
+    elif score >= 35:
+        label, color = "ATTENDRE", "amber"
+    else:
+        label, color = "NE PAS ENTRER", "rose"
+
+    return {"score": score, "label": label, "color": color, "details": details}
+
+
 # ── Point d'entrée principal ──────────────────────────────────────────────────
 
 def compute_advisor(asset: str = "BTC", timeframe: str = "1h", days: int = 60) -> dict:
@@ -251,25 +395,30 @@ def compute_advisor(asset: str = "BTC", timeframe: str = "1h", days: int = 60) -
     ivp = compute_ivp(asset, days=365)
 
     # 2. DVOL
-    dvol_state  = "NEUTRAL"
-    dvol_close  = None
-    dvol_z      = None
+    dvol_state   = "NEUTRAL"
+    dvol_close   = None
+    dvol_z       = None
+    dvol_roc_24h = None
     try:
         dvol = detect_dvol_variation(DvolDetectorConfig(asset=asset, timeframe=timeframe, days=days))
         dvol.pop("frame", None)
-        dvol_state = dvol.get("dvol_state", "NEUTRAL")
-        dvol_close = dvol.get("dvol_close")
-        dvol_z     = dvol.get("dvol_z")
+        dvol_state   = dvol.get("dvol_state", "NEUTRAL")
+        dvol_close   = dvol.get("dvol_close")
+        dvol_z       = dvol.get("dvol_z")
+        dvol_roc_24h = dvol.get("dvol_roc_24h")
     except Exception as e:
         print(f"[advisor] DVOL {asset}: {e}")
 
     # 3. Signal directionnel + snapshot options
-    signal_action   = "WATCH"
-    spot            = None
-    iv_atm          = None
-    skew            = None
-    realized_vol    = None
+    signal_action    = "WATCH"
+    spot             = None
+    iv_atm           = None
+    skew             = None
+    realized_vol     = None
+    term_1w          = None
+    term_1m          = None
     vol_premium_bias = "NEUTRAL"
+    vol_premium_dec  = None
     try:
         sig = build_deribit_signal(SignalConfig(asset=asset, timeframe=timeframe, days=90))
         signal_action = sig.get("signal", {}).get("action", "WATCH")
@@ -278,16 +427,18 @@ def compute_advisor(asset: str = "BTC", timeframe: str = "1h", days: int = 60) -
         iv_atm        = opts.get("iv_atm")
         skew          = opts.get("iv_skew_25d")
         realized_vol  = sig.get("realized_vol_annual")
+        term_1w       = opts.get("term_1w")
+        term_1m       = opts.get("term_1m")
     except Exception as e:
         print(f"[advisor] Signal {asset}: {e}")
 
     # 4. Vol premium bias (fallback si IVP indisponible)
     if iv_atm and realized_vol:
         try:
-            premium = float(iv_atm) / 100.0 - float(realized_vol)
-            if premium > 0.05:
+            vol_premium_dec = float(iv_atm) / 100.0 - float(realized_vol)
+            if vol_premium_dec > 0.05:
                 vol_premium_bias = "SELL_VOL"
-            elif premium < -0.05:
+            elif vol_premium_dec < -0.05:
                 vol_premium_bias = "BUY_VOL"
         except Exception:
             pass
@@ -309,6 +460,20 @@ def compute_advisor(asset: str = "BTC", timeframe: str = "1h", days: int = 60) -
 
     meta      = _STRATEGY_META.get(strategy, {})
     rationale = _build_rationale(strategy, ivp, vol_regime, directional_bias, dvol_state, skew, signal_action)
+
+    # 8. Score de timing d'entrée
+    timing = _compute_timing_score(
+        strategy      = strategy,
+        ivp           = ivp,
+        vol_regime    = vol_regime,
+        dvol_state    = dvol_state,
+        dvol_roc_24h  = dvol_roc_24h,
+        dvol_z        = dvol_z,
+        skew          = skew,
+        vol_premium   = vol_premium_dec,
+        term_1w       = term_1w,
+        term_1m       = term_1m,
+    )
 
     return {
         "asset":              asset,
@@ -332,4 +497,5 @@ def compute_advisor(asset: str = "BTC", timeframe: str = "1h", days: int = 60) -
         "dte_days":           dte_days,
         "legs":               legs,
         "rationale":          rationale,
+        "timing":             timing,
     }

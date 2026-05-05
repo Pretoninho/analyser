@@ -278,6 +278,13 @@ export type AdvisorLeg = {
   delta: string
 }
 
+export type AdvisorTiming = {
+  score: number
+  label: string
+  color: string
+  details: Array<{ label: string; pts: number; max: number; note: string }>
+}
+
 export type AdvisorResponse = {
   asset: string
   timestamp: string
@@ -300,6 +307,7 @@ export type AdvisorResponse = {
   dte_days: number
   legs: AdvisorLeg[]
   rationale: string
+  timing: AdvisorTiming | null
 }
 
 export async function fetchAdvisor(asset = "BTC", timeframe = "1h", days = 60) {

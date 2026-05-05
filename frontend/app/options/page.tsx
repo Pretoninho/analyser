@@ -573,6 +573,60 @@ export default function OptionsPage() {
                 </div>
               </div>
 
+              {/* Score de timing */}
+              {advisor.timing && (
+                <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-sm font-semibold text-white">Score de timing</h2>
+                    <div className={`px-3 py-1 rounded text-xs font-semibold mono border ${
+                      advisor.timing.color === "emerald" ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300" :
+                      advisor.timing.color === "cyan"    ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-300" :
+                      advisor.timing.color === "amber"   ? "bg-amber-500/15 border-amber-500/40 text-amber-300" :
+                                                           "bg-rose-500/15 border-rose-500/40 text-rose-300"
+                    }`}>
+                      {advisor.timing.label}
+                    </div>
+                  </div>
+
+                  {/* Barre de score globale */}
+                  <div className="mb-4">
+                    <div className="flex justify-between text-xs mb-1.5">
+                      <span className="text-slate-500">Score global</span>
+                      <span className="text-white mono font-semibold">{advisor.timing.score} / 100</span>
+                    </div>
+                    <div className="h-2 rounded bg-white/10 overflow-hidden">
+                      <div
+                        className={`h-full rounded transition-all ${
+                          advisor.timing.score >= 75 ? "bg-emerald-400" :
+                          advisor.timing.score >= 55 ? "bg-cyan-400" :
+                          advisor.timing.score >= 35 ? "bg-amber-400" : "bg-rose-400"
+                        }`}
+                        style={{ width: `${advisor.timing.score}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Détail par composante */}
+                  <div className="space-y-2">
+                    {advisor.timing.details.map((d, i) => (
+                      <div key={i}>
+                        <div className="flex justify-between text-[11px] mb-1">
+                          <span className="text-slate-400">{d.label}</span>
+                          <span className="text-slate-500 mono">{d.pts}/{d.max} pts</span>
+                        </div>
+                        <div className="h-1 rounded bg-white/10 overflow-hidden mb-0.5">
+                          <div
+                            className="h-full bg-indigo-400/60 rounded"
+                            style={{ width: `${(d.pts / d.max) * 100}%` }}
+                          />
+                        </div>
+                        <p className="text-[10px] text-slate-600">{d.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Recommandation */}
               <div className={`rounded-lg border p-5 ${clsAdvisor(advisor.color)}`}>
                 <div className="flex items-start justify-between mb-4">
