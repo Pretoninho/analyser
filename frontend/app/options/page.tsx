@@ -83,7 +83,7 @@ function probITM(S: number, K: number, T: number, r: number, q: number, v: numbe
 
 type LegSide = "long" | "short"
 type OptType = "call" | "put"
-type Tab = "advisor" | "pricer" | "position" | "probas" | "gestion"
+type Tab = "advisor" | "pricer" | "position" | "probas" | "gestion" | "aide"
 
 // ── Gestion — types ───────────────────────────────────────────────────────────
 
@@ -585,7 +585,7 @@ export default function OptionsPage() {
       {/* Global params */}
       <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-4">
         <p className="text-[11px] text-slate-500 mb-3 uppercase tracking-wider">Paramètres globaux</p>
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           <div>
             <label className={label}>Spot (S)</label>
             <input className={inp} type="number" value={spot} onChange={e => setSpot(+e.target.value)} />
@@ -614,9 +614,9 @@ export default function OptionsPage() {
 
       {/* Tabs */}
       <div className="flex gap-2">
-        {(["advisor", "pricer", "position", "probas", "gestion"] as Tab[]).map(t => (
+        {(["advisor", "pricer", "position", "probas", "gestion", "aide"] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)} className={btn(tab === t)}>
-            {t === "advisor" ? "Advisor" : t === "pricer" ? "Pricer & Greeks" : t === "position" ? "Position Builder" : t === "probas" ? "Probabilités" : "Gestion"}
+            {t === "advisor" ? "Advisor" : t === "pricer" ? "Pricer" : t === "position" ? "Position" : t === "probas" ? "Probas" : t === "gestion" ? "Gestion" : "? Aide"}
           </button>
         ))}
       </div>
@@ -663,7 +663,7 @@ export default function OptionsPage() {
               </div>
 
               {/* Contexte de marché */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="bg-[#0d0d14] border border-white/5 rounded-lg px-4 py-3">
                   <p className="text-[11px] text-slate-500 mb-1">Régime vol</p>
                   <p className={`text-sm font-semibold mono ${
@@ -846,7 +846,7 @@ export default function OptionsPage() {
                         </p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="bg-white/[0.03] rounded-lg px-4 py-3">
                           <p className="text-[11px] text-slate-500">Kelly brut</p>
                           <p className="text-lg font-semibold mono text-white">{(fStar * 100).toFixed(1)}%</p>
@@ -971,7 +971,7 @@ export default function OptionsPage() {
 
       {/* ── TAB PRICER ── */}
       {tab === "pricer" && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Inputs */}
           <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5 space-y-4">
             <h2 className="text-sm font-semibold text-white">Black-Scholes</h2>
@@ -1110,7 +1110,7 @@ export default function OptionsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Legs table */}
             <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
               <div className="px-4 py-2 border-b border-white/5 text-[11px] text-slate-500 uppercase">Legs</div>
@@ -1160,7 +1160,7 @@ export default function OptionsPage() {
 
       {/* ── TAB PROBAS ── */}
       {tab === "probas" && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Expected Move */}
           <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
             <h2 className="text-sm font-semibold text-white mb-4">Expected Move</h2>
@@ -1358,6 +1358,166 @@ export default function OptionsPage() {
               Entrez les legs de votre position ou utilisez "Pré-remplir depuis l'Advisor"
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── TAB AIDE ── */}
+      {tab === "aide" && (
+        <div className="space-y-5 max-w-3xl">
+
+          {/* Intro */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-base font-semibold text-white mb-2">Qu'est-ce qu'une option ?</h2>
+            <p className="text-sm text-slate-400 leading-6">
+              Une option est un <span className="text-white">contrat qui donne le droit</span> (pas l'obligation) d'acheter ou de vendre un actif
+              à un prix fixé (le <span className="text-indigo-300">strike</span>) avant une date d'expiration.
+              Tu paies ou encaisses une <span className="text-indigo-300">prime</span> pour ce droit.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
+                <p className="text-xs font-semibold text-emerald-300 mb-1">CALL — droit d'acheter</p>
+                <p className="text-xs text-slate-400">Profitable si le prix monte au-dessus du strike. L'acheteur paie une prime. Le vendeur l'encaisse.</p>
+              </div>
+              <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-3">
+                <p className="text-xs font-semibold text-rose-300 mb-1">PUT — droit de vendre</p>
+                <p className="text-xs text-slate-400">Profitable si le prix baisse en dessous du strike. L'acheteur se protège. Le vendeur encaisse la prime.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 2 grandes approches */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-base font-semibold text-white mb-3">Les 2 approches fondamentales</h2>
+            <div className="space-y-3">
+              <div className="border border-white/5 rounded-lg p-4">
+                <p className="text-sm font-semibold text-emerald-300 mb-1">Vendeur de volatilité (seller)</p>
+                <p className="text-xs text-slate-400 leading-5">
+                  Tu encaisses la prime immédiatement. Tu gagnes si le marché reste dans une plage de prix.
+                  Avantage : le temps joue pour toi (theta positif).
+                  Risque : une forte variation de prix peut dépasser ta prime.
+                  <span className="text-slate-300"> → Stratégies : Short Put, Short Strangle, Iron Condor</span>
+                </p>
+              </div>
+              <div className="border border-white/5 rounded-lg p-4">
+                <p className="text-sm font-semibold text-violet-300 mb-1">Acheteur de volatilité (buyer)</p>
+                <p className="text-xs text-slate-400 leading-5">
+                  Tu paies une prime. Tu gagnes si le marché fait un grand mouvement dans n'importe quelle direction.
+                  Avantage : perte limitée à la prime payée.
+                  Risque : le temps joue contre toi (theta négatif).
+                  <span className="text-slate-300"> → Stratégies : Long Straddle, Long Strangle, Spreads</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Greeks */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-base font-semibold text-white mb-3">Les Greeks — en une phrase</h2>
+            <div className="space-y-2">
+              {[
+                { name: "Delta (Δ)", color: "text-cyan-300",   desc: "De combien varie le prix de l'option si le spot bouge de 1$. Ex: delta 0.25 = l'option gagne 0.25$ si BTC monte de 1$." },
+                { name: "Gamma (Γ)", color: "text-indigo-300", desc: "Vitesse du delta. Un gamma élevé (proche de l'ATM) = le delta change rapidement. Dangereux près de l'expiry." },
+                { name: "Vega (ν)",  color: "text-violet-300", desc: "Exposition à la volatilité implicite. +1% de vol = vega en $ de gain/perte. Crucial pour choisir achat vs vente de vol." },
+                { name: "Theta (θ)", color: "text-amber-300",  desc: "Érosion temporelle quotidienne. Négatif pour l'acheteur (perd de la valeur chaque jour), positif pour le vendeur." },
+                { name: "Rho (ρ)",   color: "text-slate-400",  desc: "Sensibilité aux taux d'intérêt. Peu significatif pour les options crypto à court terme." },
+              ].map(g => (
+                <div key={g.name} className="flex gap-3 py-2 border-b border-white/[0.04]">
+                  <span className={`text-sm font-semibold mono w-24 shrink-0 ${g.color}`}>{g.name}</span>
+                  <span className="text-xs text-slate-400 leading-5">{g.desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Flux de travail de l'outil */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-base font-semibold text-white mb-4">Mode d'emploi — flux de travail</h2>
+            <div className="space-y-3">
+              {[
+                { step: "1", tab: "Advisor", color: "bg-indigo-500",
+                  title: "Lire le régime de marché",
+                  desc: "Ouvre l'onglet Advisor. Choisis BTC ou ETH. L'outil analyse l'IVP (rang de la vol sur 52 semaines), le biais directionnel (signal futures), et propose une stratégie." },
+                { step: "2", tab: "Advisor", color: "bg-cyan-600",
+                  title: "Vérifier le score de timing",
+                  desc: "En dessous de la stratégie, le score de timing (0-100) indique si c'est le bon moment. En dessous de 55 → attendre. Au-dessus de 75 → conditions optimales pour entrer." },
+                { step: "3", tab: "Advisor", color: "bg-violet-600",
+                  title: "Calibrer le sizing Kelly",
+                  desc: "Entre ton capital et choisis la fraction Kelly (¼ recommandé). L'outil calcule le max risque autorisé en $ et le nombre de contrats cohérent avec tes règles." },
+                { step: "4", tab: "Pricer", color: "bg-emerald-600",
+                  title: "Vérifier le prix avec le Pricer",
+                  desc: "Dans l'onglet Pricer, entre le strike suggéré par l'Advisor. Vérifie le prix théorique Black-Scholes, les Greeks, et utilise l'IV Solver si tu as le prix du marché." },
+                { step: "5", tab: "Position", color: "bg-amber-600",
+                  title: "Visualiser le P&L avec Position Builder",
+                  desc: "Construis les legs de ta position (ou utilise un preset Strangle/Condor). Le diagramme P&L montre ton max gain, max perte, et breakevens à expiry." },
+                { step: "6", tab: "Gestion", color: "bg-rose-600",
+                  title: "Surveiller avec le tab Gestion",
+                  desc: "Une fois en position, va dans Gestion. Clique 'Pré-remplir depuis l'Advisor', entre le DTE restant. Les alertes te signalent : TP atteint, SL proche, strike menacé, delta drifté." },
+              ].map(s => (
+                <div key={s.step} className="flex gap-4">
+                  <div className={`w-7 h-7 rounded-full ${s.color} flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5`}>
+                    {s.step}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-sm font-semibold text-white">{s.title}</p>
+                      <span className="text-[10px] text-slate-500 border border-white/10 rounded px-1.5 py-0.5">{s.tab}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-5">{s.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Règles de base */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-base font-semibold text-white mb-3">Règles de base (vendeur de vol)</h2>
+            <div className="space-y-2">
+              {[
+                { rule: "Ne jamais risquer > 2% du capital par trade", why: "Kelly criterion — protège du risque de ruine" },
+                { rule: "Vendre à 21-30 jours avant expiry (DTE)", why: "Zone optimale de décroissance du theta" },
+                { rule: "Prendre profit à 50% de la prime encaissée", why: "Libère le capital, réduit le temps en risque" },
+                { rule: "Couper si la prime double contre toi (×2)", why: "Stop loss automatique avant que la perte devienne incontrôlable" },
+                { rule: "Fermer ou rouler si DTE < 7 jours", why: "Gamma explose près de l'expiry — risque de gap brutal" },
+                { rule: "Ne pas trader si le timing score < 55", why: "Conditions défavorables = EV négatif ou neutre" },
+              ].map((r, i) => (
+                <div key={i} className="flex gap-3 py-2 border-b border-white/[0.04]">
+                  <span className="text-emerald-400 text-sm shrink-0">✓</span>
+                  <div>
+                    <p className="text-xs text-slate-200">{r.rule}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">{r.why}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Glossaire */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <h2 className="text-base font-semibold text-white mb-3">Glossaire rapide</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+              {[
+                { term: "IVP",            def: "IV Percentile — rang de la vol implicite actuelle vs les 52 dernières semaines. > 70% = vol chère." },
+                { term: "DVOL",           def: "Deribit Volatility Index — équivalent du VIX pour le crypto. Mesure la vol implicite 30j." },
+                { term: "Vol premium",    def: "Différence entre IV implicite et vol réalisée. Positif = options surévaluées → favorable au vendeur." },
+                { term: "Term structure", def: "Courbe de la vol par échéance. Backwardation (1W > 1M) = stress court terme." },
+                { term: "Skew 25d",      def: "Différence IV put 25δ - call 25δ. Positif = marché craint la baisse, puts chers." },
+                { term: "ATM",            def: "At The Money — strike égal au prix actuel du spot." },
+                { term: "OTM",            def: "Out of The Money — strike au-delà du spot (call plus haut, put plus bas)." },
+                { term: "ITM",            def: "In The Money — option qui aurait une valeur intrinsèque si exercée maintenant." },
+                { term: "Roll",           def: "Fermer une option et en ouvrir une nouvelle à un strike ou une échéance différente." },
+                { term: "Strangle",       def: "Vente (ou achat) simultané d'un call et d'un put OTM de même expiry." },
+                { term: "Iron Condor",    def: "Strangle avec ailes achetées pour limiter la perte maximale. Risque limité des deux côtés." },
+                { term: "Theta decay",    def: "Érosion de la valeur temps chaque jour. S'accélère dans les dernières semaines." },
+              ].map(g => (
+                <div key={g.term} className="py-1.5 border-b border-white/[0.04]">
+                  <span className="text-xs font-semibold text-indigo-300 mono">{g.term}</span>
+                  <span className="text-xs text-slate-500"> — {g.def}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       )}
     </div>

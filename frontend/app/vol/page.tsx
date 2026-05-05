@@ -181,7 +181,7 @@ export default function VolPage() {
           <p className="text-xs text-slate-500 mb-4">
             Spread entre IV implicite ATM et vol réalisée annualisée. Positif = options chères → vendre. Négatif = options bon marché → acheter.
           </p>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <StatCard label="IV ATM" value={fmt(vp.iv_atm, 1) + "%"} />
             <StatCard label="Vol réalisée" value={fmtPct(vp.realized_vol)} />
             <StatCard label="Premium" value={`${vp.premium > 0 ? "+" : ""}${fmtPct(vp.premium)}`} />
@@ -200,12 +200,12 @@ export default function VolPage() {
 
       {/* ── Signal Deribit + Drivers ─────────────────────────────── */}
       {!hasSignalError && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           {/* Signal actionnable */}
           <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
             <h2 className="text-sm font-semibold text-white mb-4">Signal Deribit Futures</h2>
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               <div className={`col-span-2 rounded-lg border px-4 py-3 text-center ${clsAction(signal.signal.action)}`}>
                 <p className="text-xs opacity-70 mb-1">Action</p>
                 <p className="text-2xl font-bold mono">{signal.signal.action}</p>
