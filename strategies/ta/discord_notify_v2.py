@@ -13,7 +13,8 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-from strategies.ta.features import load_15m, compute_features
+from strategies.ta.features import compute_features
+from strategies.ta.live_runner_v2 import fetch_klines
 from strategies.ta.ensemble_voting_v2 import EnsembleVoterV2
 from strategies.ta.signal_logger import log_signal
 from strategies.ta.config import RESULTS_DIR
@@ -66,8 +67,8 @@ def scan_and_notify_v2(symbol: str = None) -> bool:
     try:
         print("[ta_notify_v2] Loading data...", flush=True)
 
-        # Load features
-        df15 = load_15m()
+        # Fetch live from Binance (last ~500 bars = ~5 days)
+        df15 = fetch_klines("15m", 500, symbol)
         if len(df15) < 100:
             print("[ta_notify_v2] Insufficient data", flush=True)
             return False
