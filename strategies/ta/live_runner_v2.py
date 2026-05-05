@@ -30,6 +30,10 @@ from strategies.ta.ensemble_voting_v2 import EnsembleVoterV2
 BINANCE_URL    = "https://api.binance.com/api/v3/klines"
 REF_PARAMS     = "EMA50_RSI14_SK14SS3SD3_ATR14"
 
+# Ensemble voting config
+VOTING_MIN_N_OOS  = 5
+VOTING_MIN_WR_OOS = 0.60  # strict threshold
+
 # Seuil minimal de corps pour éviter les doji (en % de la bougie)
 DOJI_THRESHOLD = 0.1  # corps < 10% du range total = doji, ignoré
 
