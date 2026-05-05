@@ -257,6 +257,14 @@ db/htf/
 **Scheduler — Cron TA (commit 83645f1)**
 - `api/app.py` : `hour="7-10,13-16"` → `hour="7-11,13-17"` (bougies 11h00 et 17h00 UTC manquées corrigées).
 
+**Nettoyage racine (commit 705bfbb)**
+- `sweep.py`, `stat_fractal.py`, `download_top10.py` → `analysis/`
+- `test_*.py` → `tests/`
+- `fractals_live_monitoring.xlsx`, `judas_swings_analysis.xlsx`, `fractals_m15_charts.html` → `display/analysis/`
+- `guide utilisation.txt`, `requirements-full.txt` → `docs/`
+- Supprimés : `VALIDATION_TA_V2_WEEKEND.md`, `DEPLOYMENT_TA_V2.md`, `requirements-live.txt`, `HANDOFF*.md`, `PROCEDURE_HTF_COMPLETE.md`, `HTF_STATES_AGENT_HANDOFF.txt`
+- Import `from main import ...` dans `sweep.py` corrigé pour fonctionner depuis `analysis/`
+
 **Tests end-to-end validés :**
 - 2 signaux loggés et résolus (win +2R, loss -1R) — `db/ta_signals.csv` fonctionnel.
 - `live_stats()` opérationnel : WR, Exp_R, by_regime, by_direction.
