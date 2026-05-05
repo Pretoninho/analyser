@@ -8,6 +8,7 @@ Usage : python sweep.py
 import csv
 import itertools
 from pathlib import Path
+import sys, os; sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from main import run_build_qtable, run_backtest_stats
 
 SKIP_MACROS  = frozenset({1, 3, 5, 6, 7})  # macros silencieuses + 14:50 (Power Hour, inefficace sur BTC Binance)
