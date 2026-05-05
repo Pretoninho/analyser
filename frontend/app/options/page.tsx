@@ -83,7 +83,26 @@ function probITM(S: number, K: number, T: number, r: number, q: number, v: numbe
 
 type LegSide = "long" | "short"
 type OptType = "call" | "put"
-type Tab = "advisor" | "pricer" | "position" | "probas"
+type Tab = "advisor" | "pricer" | "position" | "probas" | "gestion"
+
+// ── Gestion — types ───────────────────────────────────────────────────────────
+
+interface GestionLeg {
+  id: number
+  type: OptType
+  action: "BUY" | "SELL"
+  strike: number
+  entryPremium: number  // prime encaissée (SELL) ou payée (BUY)
+}
+
+type AlertLevel = "URGENT" | "WARNING" | "SUCCESS" | "INFO"
+
+interface Alert {
+  level: AlertLevel
+  label: string
+  detail: string
+  action: string
+}
 
 const ADVISOR_ASSETS = ["BTC", "ETH"]
 
@@ -347,6 +366,101 @@ export default function OptionsPage() {
   const updateCapital = (v: number) => { setCapital(v); localStorage.setItem("kelly_capital", String(v)) }
   const updateFraction = (v: KellyFraction) => { setKellyFraction(v); localStorage.setItem("kelly_fraction", String(v)) }
 
+  // Gestion state
+  const [gLegs, setGLegs] = useState<GestionLeg[]>([])
+  const [gNextId, setGNextId] = useState(1)
+  const [gEntryIv, setGEntryIv] = useState(40)        // IV % au moment de l'entrée
+  const [gDteEntry, setGDteEntry] = useState(21)       // DTE à l'entrée
+  const [gDteLeft, setGDteLeft] = useState(14)         // DTE restant maintenant
+  const [gNewLeg, setGNewLeg] = useState<Omit<GestionLeg, "id">>({
+    type: "put", action: "SELL", strike: 78000, entryPremium: 0,
+  })
+
+  // Pré-remplir depuis l'Advisor
+  const prefillFromAdvisor = useCallback(() => {
+    if (!advisor || advisor.strategy === "WAIT") return
+    let id = 1
+    const legs: GestionLeg[] = advisor.legs.map(l => ({
+      id: id++,
+      type: l.type.toLowerCase() as OptType,
+      action: l.action as "BUY" | "SELL",
+      strike: l.strike,
+      entryPremium: 0,
+    }))
+    setGLegs(legs)
+    setGNextId(id)
+    if (advisor.iv_atm) setGEntryIv(parseFloat(advisor.iv_atm.toFixed(1)))
+    setGDteEntry(advisor.dte_days)
+    setGDteLeft(Math.round(advisor.dte_days * 0.67))
+  }, [advisor])
+
+  // Calcul des alertes
+  const gAlerts = useMemo((): Alert[] => {
+    if (gLegs.length === 0) return []
+    const alerts: Alert[] = []
+    const T     = gDteLeft / 365
+    const Tentry = gDteEntry / 365
+    const sigNow   = iv / 1      // iv global (déjà en décimal)
+    const sigEntry = gEntryIv / 100
+
+    // P&L global
+    let pnl = 0
+    let totalPremium = 0
+    for (const leg of gLegs) {
+      const sign = leg.action === "SELL" ? 1 : -1
+      const currentMark = bsPrice(spot, leg.strike, Math.max(T, 0.001), r, q, sigNow, leg.type === "call")
+      const entryMark   = leg.entryPremium
+      pnl += sign * (entryMark - currentMark)
+      totalPremium += leg.entryPremium
+    }
+
+    // TP / SL
+    const tp = totalPremium * 0.50
+    const sl = totalPremium * 2.00
+    if (pnl >= tp) {
+      alerts.push({ level: "SUCCESS", label: "TP atteint", detail: `P&L +${pnl.toFixed(2)} ≥ 50% prime (${tp.toFixed(2)})`, action: "Racheter la position maintenant" })
+    } else if (pnl <= -sl) {
+      alerts.push({ level: "URGENT", label: "Stop Loss", detail: `Perte −${Math.abs(pnl).toFixed(2)} ≥ 2× prime (${sl.toFixed(2)})`, action: "Fermer la position immédiatement" })
+    }
+
+    // DTE critique
+    if (gDteLeft <= 7) {
+      alerts.push({ level: "WARNING", label: "Zone gamma critique", detail: `DTE = ${gDteLeft}j — gamma élevé, risque de gap`, action: "Fermer ou rouler à l'échéance suivante" })
+    } else if (gDteLeft <= 14) {
+      alerts.push({ level: "INFO", label: "DTE court", detail: `${gDteLeft}j restants — surveiller la gestion`, action: "Préparer le roll si position profitable" })
+    }
+
+    // Strikes en danger + delta drift
+    for (const leg of gLegs) {
+      if (leg.strike <= 0) continue
+      const distPct = Math.abs(spot - leg.strike) / spot * 100
+      if (leg.action === "SELL") {
+        if (distPct < 3) {
+          alerts.push({ level: "URGENT", label: `Strike ${leg.type.toUpperCase()} ${leg.strike.toLocaleString()} touché`, detail: `Spot à ${distPct.toFixed(1)}% du strike vendu`, action: "Rouler le strike immédiatement" })
+        } else if (distPct < 8) {
+          alerts.push({ level: "WARNING", label: `${leg.type.toUpperCase()} ${leg.strike.toLocaleString()} menacé`, detail: `Spot à ${distPct.toFixed(1)}% du strike vendu`, action: "Surveiller, préparer le roll" })
+        }
+      }
+
+      // Delta drift
+      const deltaEntry = bsGreeks(spot, leg.strike, Tentry, r, q, sigEntry, leg.type === "call").delta
+      const deltaNow   = bsGreeks(spot, leg.strike, Math.max(T, 0.001), r, q, sigNow,  leg.type === "call").delta
+      const drift = Math.abs(deltaNow - deltaEntry)
+      if (drift > 0.20) {
+        alerts.push({ level: "WARNING", label: "Delta drift", detail: `${leg.type.toUpperCase()} ${leg.strike} : δ ${deltaEntry.toFixed(2)} → ${deltaNow.toFixed(2)} (drift ${drift.toFixed(2)})`, action: "Rouler ou hedger le delta" })
+      }
+    }
+
+    if (alerts.length === 0) {
+      alerts.push({ level: "INFO", label: "Position saine", detail: `P&L ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} · DTE ${gDteLeft}j · pas de seuil atteint`, action: "Continuer à surveiller" })
+    }
+
+    return alerts.sort((a, b) => {
+      const order = { URGENT: 0, WARNING: 1, SUCCESS: 2, INFO: 3 }
+      return order[a.level] - order[b.level]
+    })
+  }, [gLegs, spot, iv, r, q, gEntryIv, gDteEntry, gDteLeft])
+
   // Pricer state
   const [strike, setStrike] = useState(78000)
   const [optType, setOptType] = useState<OptType>("call")
@@ -500,9 +614,9 @@ export default function OptionsPage() {
 
       {/* Tabs */}
       <div className="flex gap-2">
-        {(["advisor", "pricer", "position", "probas"] as Tab[]).map(t => (
+        {(["advisor", "pricer", "position", "probas", "gestion"] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)} className={btn(tab === t)}>
-            {t === "advisor" ? "Advisor" : t === "pricer" ? "Pricer & Greeks" : t === "position" ? "Position Builder" : "Probabilités"}
+            {t === "advisor" ? "Advisor" : t === "pricer" ? "Pricer & Greeks" : t === "position" ? "Position Builder" : t === "probas" ? "Probabilités" : "Gestion"}
           </button>
         ))}
       </div>
@@ -1115,6 +1229,135 @@ export default function OptionsPage() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* ── TAB GESTION ── */}
+      {tab === "gestion" && (
+        <div className="space-y-4">
+
+          {/* Paramètres de la position ouverte */}
+          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-white">Position ouverte</h2>
+              <button onClick={prefillFromAdvisor} className={btn(false) + " text-indigo-300 border-indigo-500/30"}>
+                Pré-remplir depuis l'Advisor
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div>
+                <label className={label}>IV à l'entrée (%)</label>
+                <input className={inp} type="number" value={gEntryIv} step={0.5}
+                  onChange={e => setGEntryIv(+e.target.value)} />
+              </div>
+              <div>
+                <label className={label}>DTE à l'entrée (j)</label>
+                <input className={inp} type="number" value={gDteEntry} min={1}
+                  onChange={e => setGDteEntry(+e.target.value)} />
+              </div>
+              <div>
+                <label className={label}>DTE restant (j)</label>
+                <input className={inp} type="number" value={gDteLeft} min={0}
+                  onChange={e => setGDteLeft(+e.target.value)} />
+              </div>
+            </div>
+
+            {/* Ajout de legs */}
+            <p className="text-[11px] text-slate-500 mb-2">Legs de la position</p>
+            <div className="flex gap-2 flex-wrap items-end mb-3">
+              <div className="flex gap-1">
+                {(["SELL","BUY"] as const).map(a => (
+                  <button key={a} onClick={() => setGNewLeg(l => ({...l, action: a}))}
+                    className={btn(gNewLeg.action === a)}>
+                    {a}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-1">
+                {(["call","put"] as OptType[]).map(t => (
+                  <button key={t} onClick={() => setGNewLeg(l => ({...l, type: t}))}
+                    className={btn(gNewLeg.type === t)}>
+                    {t.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <div className="w-28">
+                <label className={label}>Strike</label>
+                <input className={inp} type="number" value={gNewLeg.strike}
+                  onChange={e => setGNewLeg(l => ({...l, strike: +e.target.value}))} />
+              </div>
+              <div className="w-32">
+                <label className={label}>Prime entrée ($)</label>
+                <input className={inp} type="number" value={gNewLeg.entryPremium} step={1}
+                  onChange={e => setGNewLeg(l => ({...l, entryPremium: +e.target.value}))} />
+              </div>
+              <button onClick={() => {
+                setGLegs(l => [...l, { ...gNewLeg, id: gNextId }])
+                setGNextId(n => n + 1)
+              }} className="px-4 py-1.5 text-xs rounded bg-indigo-600 text-white hover:bg-indigo-500">
+                + Ajouter
+              </button>
+            </div>
+
+            {/* Liste des legs */}
+            {gLegs.length > 0 && (
+              <div className="rounded-lg overflow-hidden border border-white/5">
+                {gLegs.map(leg => (
+                  <div key={leg.id} className="flex items-center justify-between px-4 py-2 border-b border-white/[0.03] text-xs">
+                    <span className={leg.action === "SELL" ? "text-rose-300 mono" : "text-emerald-300 mono"}>{leg.action}</span>
+                    <span className="text-slate-300 mono">{leg.type.toUpperCase()}</span>
+                    <span className="text-white mono">{leg.strike.toLocaleString()}</span>
+                    <span className="text-slate-500 mono">prime: ${leg.entryPremium}</span>
+                    <span className="text-slate-500 mono">δ entrée: {bsGreeks(spot, leg.strike, gDteEntry/365, r, q, gEntryIv/100, leg.type === "call").delta.toFixed(2)}</span>
+                    <span className="text-slate-400 mono">δ maintenant: {bsGreeks(spot, leg.strike, Math.max(gDteLeft/365, 0.001), r, q, iv, leg.type === "call").delta.toFixed(2)}</span>
+                    <button onClick={() => setGLegs(l => l.filter(x => x.id !== leg.id))}
+                      className="text-slate-600 hover:text-rose-400">✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Alertes */}
+          {gLegs.length > 0 && (
+            <div className="space-y-2">
+              <h2 className="text-sm font-semibold text-white">Alertes d'ajustement</h2>
+              {gAlerts.map((a, i) => {
+                const colors: Record<AlertLevel, string> = {
+                  URGENT:  "bg-rose-500/15 border-rose-500/40",
+                  WARNING: "bg-amber-500/15 border-amber-500/40",
+                  SUCCESS: "bg-emerald-500/15 border-emerald-500/40",
+                  INFO:    "bg-white/5 border-white/10",
+                }
+                const icons: Record<AlertLevel, string> = {
+                  URGENT: "🔴", WARNING: "🟡", SUCCESS: "🟢", INFO: "⚪",
+                }
+                const textColors: Record<AlertLevel, string> = {
+                  URGENT: "text-rose-300", WARNING: "text-amber-300", SUCCESS: "text-emerald-300", INFO: "text-slate-400",
+                }
+                return (
+                  <div key={i} className={`rounded-lg border p-4 ${colors[a.level]}`}>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className={`text-sm font-semibold ${textColors[a.level]}`}>
+                          {icons[a.level]} {a.label}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-0.5">{a.detail}</p>
+                      </div>
+                      <p className="text-xs text-slate-500 text-right ml-4 shrink-0">{a.action}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {gLegs.length === 0 && (
+            <div className="flex items-center justify-center h-32 text-slate-600 text-sm">
+              Entrez les legs de votre position ou utilisez "Pré-remplir depuis l'Advisor"
+            </div>
+          )}
         </div>
       )}
     </div>
