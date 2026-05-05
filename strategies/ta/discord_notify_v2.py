@@ -61,8 +61,7 @@ def scan_and_notify_v2(symbol: str = None) -> bool:
     symbol = symbol or os.environ.get("BINANCE_SYMBOL", "BTCUSDT").upper()
     webhook_url = os.environ.get(WEBHOOK_ENV, "")
     if not webhook_url:
-        print(f"[ta_notify_v2] Skipped — {WEBHOOK_ENV} not set", flush=True)
-        return False
+        print(f"[ta_notify_v2] Warning — {WEBHOOK_ENV} not set (scan + log will still run)", flush=True)
 
     try:
         print("[ta_notify_v2] Loading data...", flush=True)
@@ -93,16 +92,7 @@ def scan_and_notify_v2(symbol: str = None) -> bool:
 
         print(f"[ta_notify_v2] Found {len(signals)} signal(s) with consensus", flush=True)
 
-        # Format et envoyer
-        msg = _format_message_v2(signals, symbol)
-        if not msg:
-            return False
-
-        print(f"[ta_notify_v2] Sending to Discord: {len(msg)} chars", flush=True)
-        resp = requests.post(webhook_url, json={"content": msg}, timeout=10)
-        resp.raise_for_status()
-
-        # Log signals
+        # Log signals en premier — indépendamment de Discord
         for sig in signals:
             log_signal({
                 "timestamp": sig["timestamp"],
@@ -113,8 +103,20 @@ def scan_and_notify_v2(symbol: str = None) -> bool:
                 "vote_favorable": sig["vote_favorable"],
                 "vote_total": sig["vote_total"],
             })
+        print(f"[ta_notify_v2] {len(signals)} signal(s) logged", flush=True)
 
-        print(f"[ta_notify_v2] Signal sent and logged", flush=True)
+        # Format et envoyer Discord (optionnel si webhook non configuré)
+        if not webhook_url:
+            return True
+
+        msg = _format_message_v2(signals, symbol)
+        if not msg:
+            return True
+
+        print(f"[ta_notify_v2] Sending to Discord: {len(msg)} chars", flush=True)
+        resp = requests.post(webhook_url, json={"content": msg}, timeout=10)
+        resp.raise_for_status()
+        print(f"[ta_notify_v2] Discord notification sent", flush=True)
         return True
 
     except Exception as e:
