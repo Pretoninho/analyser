@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Fractal Detector STRICT: W+D+KZ+BR
 Inside Week + Inside Day + Inside KZ + Breakout+Reversal
@@ -69,8 +70,9 @@ class FractalDetectorStrict:
                 if not (kz_high < prev_high and kz_low > prev_low):
                     continue
 
-                # Check Breakout + Reversal
+                # Check Breakout + Reversal (borné à J+1 et J+2 seulement)
                 kz_after = df_m15[(df_m15['timestamp'] >= day_end) &
+                                   (df_m15['timestamp'] < day_end + pd.Timedelta(days=2)) &
                                    (df_m15['timestamp'].dt.hour >= kz_start) &
                                    (df_m15['timestamp'].dt.hour < kz_end)]
 
@@ -85,7 +87,7 @@ class FractalDetectorStrict:
                     direction = 'UP->DOWN' if kz_after.iloc[0]['high'] > kz_high else 'DOWN->UP'
                     signals.append({
                         'timestamp': datetime.utcnow(),
-                        'setup': 'STRICT',
+                        'setup': 'STRICT',  # noqa: E501
                         'day_date': day['timestamp'].date(),
                         'kz': kz_name,
                         'pattern': direction,

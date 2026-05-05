@@ -38,22 +38,32 @@ class BinanceDataLoader:
             print(f"Error fetching {timeframe} data: {e}")
             return pd.DataFrame()
 
-    def load_all_timeframes(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-        """Charge les données pour M15, Daily et Weekly"""
-        print(f"Loading {self.symbol} data from Binance...")
+    def load_live_timeframes(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        """
+        Charge une fenêtre réduite pour la détection live :
+        - M15 : 4 jours (J-2 → J+2) soit ~384 bougies — couvre J courant + J-1 + marge
+        - Daily : 14 jours (2 semaines) — suffisant pour Inside Day J et J-1
+        - Weekly : 8 semaines — suffit pour Inside Week
+        """
+        print(f"Loading live {self.symbol} data from Binance...")
 
-        # M15 (dernière semaine)
-        df_m15 = self.fetch_ohlcv('15m', limit=672)  # 7 jours * 96 = 672 bougies
+        df_m15 = self.fetch_ohlcv('15m', limit=384)   # ~4 jours
         print(f"✓ M15: {len(df_m15)} candles")
 
-        # Daily (dernière année)
-        df_daily = self.fetch_ohlcv('1d', limit=365)
+        df_daily = self.fetch_ohlcv('1d', limit=14)   # 2 semaines
         print(f"✓ Daily: {len(df_daily)} candles")
 
-        # Weekly (dernières 5 ans)
-        df_weekly = self.fetch_ohlcv('1w', limit=260)
+        df_weekly = self.fetch_ohlcv('1w', limit=8)   # 8 semaines
         print(f"✓ Weekly: {len(df_weekly)} candles")
 
+        return df_m15, df_daily, df_weekly
+
+    def load_all_timeframes(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        """Charge l'historique complet pour backtesting (non utilisé en live)."""
+        print(f"Loading full history {self.symbol} data from Binance...")
+        df_m15 = self.fetch_ohlcv('15m', limit=672)
+        df_daily = self.fetch_ohlcv('1d', limit=365)
+        df_weekly = self.fetch_ohlcv('1w', limit=260)
         return df_m15, df_daily, df_weekly
 
 
@@ -61,7 +71,7 @@ async def run_detection_cycle(orchestrator: FractalOrchestrator,
                               loader: BinanceDataLoader,
                               active_setups: list = None):
     """Exécute un cycle complet de détection"""
-    df_m15, df_daily, df_weekly = loader.load_all_timeframes()
+    df_m15, df_daily, df_weekly = loader.load_live_timeframes()
 
     if df_m15.empty or df_daily.empty or df_weekly.empty:
         print("Error: Could not load data from Binance")

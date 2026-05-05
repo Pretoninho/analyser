@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Fractal Signal Orchestrator
 Manages all three setups (STRICT, MODÉRÉ, FRÉQUENT) and sends Discord notifications
@@ -22,6 +23,10 @@ class FractalOrchestrator:
 
         self.discord_webhook = discord_webhook_url
         self.signals_log = []
+        # Clés des signaux déjà envoyés (day_date, kz, pattern, setup)
+        self._sent_keys: set = set()
+        # Clés des signaux déjà envoyés (day_date, kz, pattern, setup) — persiste en mémoire le temps du process
+        self._sent_keys: set = set()
 
     async def send_discord_notification(self, signal: Dict, setup_tag: str):
         """Envoie une notification Discord pour un signal détecté"""
@@ -105,6 +110,10 @@ class FractalOrchestrator:
         if 'STRICT' in active_setups:
             strict_signals = self.strict_detector.detect(df_m15, daily, weekly)
             for signal in strict_signals:
+                key = (signal['day_date'], signal['kz'], signal['pattern'], signal['setup'])
+                if key in self._sent_keys:
+                    continue
+                self._sent_keys.add(key)
                 await self.send_discord_notification(signal, '[STRICT]')
                 all_signals.append(signal)
                 self.signals_log.append({
@@ -117,7 +126,10 @@ class FractalOrchestrator:
         if 'MODÉRÉ' in active_setups:
             modere_signals = self.modere_detector.detect(df_m15, daily)
             for signal in modere_signals:
-                # Éviter les doublons avec STRICT
+                key = (signal['day_date'], signal['kz'], signal['pattern'], signal['setup'])
+                if key in self._sent_keys:
+                    continue
+                # Éviter les doublons intra-cycle avec STRICT
                 is_duplicate = any(
                     s['day_date'] == signal['day_date'] and
                     s['kz'] == signal['kz'] and
@@ -126,6 +138,7 @@ class FractalOrchestrator:
                     for s in all_signals
                 )
                 if not is_duplicate:
+                    self._sent_keys.add(key)
                     await self.send_discord_notification(signal, '[MODÉRÉ]')
                     all_signals.append(signal)
                     self.signals_log.append({
@@ -138,7 +151,10 @@ class FractalOrchestrator:
         if 'FRÉQUENT' in active_setups:
             frequent_signals = self.frequent_detector.detect(df_m15)
             for signal in frequent_signals:
-                # Éviter les doublons avec STRICT et MODÉRÉ
+                key = (signal['day_date'], signal['kz'], signal['pattern'], signal['setup'])
+                if key in self._sent_keys:
+                    continue
+                # Éviter les doublons intra-cycle avec STRICT et MODÉRÉ
                 is_duplicate = any(
                     s['day_date'] == signal['day_date'] and
                     s['kz'] == signal['kz'] and
@@ -147,6 +163,7 @@ class FractalOrchestrator:
                     for s in all_signals
                 )
                 if not is_duplicate:
+                    self._sent_keys.add(key)
                     await self.send_discord_notification(signal, '[FRÉQUENT]')
                     all_signals.append(signal)
                     self.signals_log.append({
