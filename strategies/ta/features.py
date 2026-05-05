@@ -127,8 +127,8 @@ def _regime_daily(df15: pd.DataFrame,
     regime_1d[above  & slope_up]  = "bull"
     regime_1d[(~above) & slope_dn] = "bear"
 
-    # Forward-fill vers 15m
-    return regime_1d.reindex(df15.index, method="ffill")
+    # Forward-fill vers 15m (+ bfill pour les premières bougies du jour avant le 1er close 1D)
+    return regime_1d.reindex(df15.index, method="ffill").bfill()
 
 
 def _vwap_daily(df: pd.DataFrame) -> pd.Series:
@@ -213,7 +213,8 @@ def compute_features(
                                stoch_k_period, stoch_smooth_k)
     feat["_atr"]   = _atr(feat["high"], feat["low"], feat["close"], atr_len)
     atr_ma         = feat["_atr"].rolling(20).mean()
-    feat["_atr_ratio"] = feat["_atr"] / atr_ma.replace(0.0, np.nan)
+    # fillna(1.0) : avant les 20 premiers bars, on considère l'ATR ratio = 1 (neutre)
+    feat["_atr_ratio"] = (feat["_atr"] / atr_ma.replace(0.0, np.nan)).fillna(1.0)
     feat["_vwap"]  = _vwap_daily(feat)
 
     # ── Discrétisation ───────────────────────────────────────────────────────

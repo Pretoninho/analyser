@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
+import logging
 import requests
 import numpy as np
 import pandas as pd
@@ -29,11 +30,22 @@ from strategies.ta.ensemble_voting_v2 import EnsembleVoterV2
 BINANCE_URL    = "https://api.binance.com/api/v3/klines"
 REF_PARAMS     = "EMA50_RSI14_SK14SS3SD3_ATR14"
 
-# Ensemble voting config
-VOTING_MIN_N_OOS = 5
-VOTING_MIN_WR_OOS = 0.60  # strict threshold
+# Seuil minimal de corps pour éviter les doji (en % de la bougie)
+DOJI_THRESHOLD = 0.1  # corps < 10% du range total = doji, ignoré
+
+# Singleton du voter : chargé une seule fois au niveau module
+_voter_singleton: "EnsembleVoterV2 | None" = None
 
 
+def get_voter(min_n_oos: int = VOTING_MIN_N_OOS,
+              min_wr_oos: float = VOTING_MIN_WR_OOS) -> "EnsembleVoterV2":
+    """Retourne un voter singleton (relit le CSV seulement au 1er appel)."""
+    global _voter_singleton
+    if _voter_singleton is None:
+        _voter_singleton = EnsembleVoterV2(
+            RESULTS_DIR, min_n_oos=min_n_oos, min_wr_oos=min_wr_oos
+        )
+    return _voter_singleton
 # ─────────────────────────────────────────────────────────────────────────────
 # Fetch Binance
 # ─────────────────────────────────────────────────────────────────────────────
@@ -73,7 +85,13 @@ def detect_2bar_reversal(df15: pd.DataFrame, idx: int) -> tuple:
     if idx < 2:
         return None, False
 
-    body = np.sign(df15["close"].values - df15["open"].values)
+    rng = (df15["high"].values - df15["low"].values)  # range de chaque bougie
+    body_abs = (df15["close"].values - df15["open"].values)
+    # Ignorer les doji : corps < DOJI_THRESHOLD * range
+    is_doji = np.where(
+        rng > 0, np.abs(body_abs) / rng < DOJI_THRESHOLD, True
+    )
+    body = np.where(is_doji, 0, np.sign(body_abs))
     b0, b1, b2 = body[idx], body[idx - 1], body[idx - 2]
 
     long_trigger  = (b0 > 0) and (b1 < 0) and (b2 < 0)
@@ -92,7 +110,8 @@ def get_regime_at_idx(df15: pd.DataFrame, idx: int) -> str:
     try:
         regime = df15.iloc[idx]["regime"]
         return str(regime) if regime in ["bull", "bear", "range"] else "bull"
-    except:
+    except Exception as e:
+        logging.warning("[get_regime_at_idx] idx=%d err=%s", idx, e)
         return "bull"
 
 
@@ -101,15 +120,16 @@ def get_features_at_idx(df15: pd.DataFrame, idx: int) -> dict:
     try:
         row = df15.iloc[idx]
         return {
-            "ema_state": int(row.get("ema_state", 0)),
-            "ema_slope": int(row.get("ema_slope", 0)),
-            "swing": int(row.get("swing", 0)),
+            "ema_state": int(row.get("ema_state", 0) or 0),
+            "ema_slope": int(row.get("ema_slope", 0) or 0),
+            "swing": int(row.get("swing", 0) or 0),
             "rsi_state": str(row.get("rsi_state", "weak")),
             "stoch_state": str(row.get("stoch_state", "weak")),
             "atr_state": str(row.get("atr_state", "neutral")),
-            "vwap_state": int(row.get("vwap_state", 0)),
+            "vwap_state": int(row.get("vwap_state", 0) or 0),
         }
-    except:
+    except Exception as e:
+        logging.warning("[get_features_at_idx] idx=%d err=%s", idx, e)
         return {
             "ema_state": 0, "ema_slope": 0, "swing": 0,
             "rsi_state": "weak", "stoch_state": "weak",
@@ -169,7 +189,7 @@ def scan_signals(df15: pd.DataFrame, voter: EnsembleVoterV2) -> list:
             "stoch_state": features["stoch_state"],
             "atr_state": features["atr_state"],
             "vwap_state": features["vwap_state"],
-            "entry_price": float(df15.iloc[i + 1]["open"]) if i + 1 < len(df15) else 0.0,
+            "entry_price": float(df15.iloc[i + 1]["open"]) if i + 1 < len(df15) else float(df15.iloc[i]["close"]),
             "vote_total": total_voters,
             "vote_favorable": favorable_votes,
             "confidence": confidence,
@@ -181,13 +201,9 @@ def scan_signals(df15: pd.DataFrame, voter: EnsembleVoterV2) -> list:
 def main():
     print(f"[live_runner_v2] {datetime.utcnow().isoformat()} UTC\n")
 
-    # Load ensemble voter
+    # Load ensemble voter (singleton)
     print("[live_runner_v2] Loading ensemble voter...\n")
-    voter = EnsembleVoterV2(
-        RESULTS_DIR,
-        min_n_oos=VOTING_MIN_N_OOS,
-        min_wr_oos=VOTING_MIN_WR_OOS
-    )
+    voter = get_voter()
     pool_stats = voter.get_pool_stats()
     print(f"  Voter pool: {pool_stats['total_configs']} qualified configs")
     print(f"    By regime: {pool_stats['by_regime']}")

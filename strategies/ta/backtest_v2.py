@@ -41,12 +41,11 @@ def evaluate_trades(trades_df: pd.DataFrame, name: str = "") -> dict:
     n_wins = (trades_df["outcome"] == "win").sum()
     wr = n_wins / n_total if n_total > 0 else 0.0
 
-    # Expectancy en R (TP=2*ATR, SL=1*ATR)
-    wins_avg = trades_df[trades_df["outcome"] == "win"]["atr_at_entry"].mean() if n_wins > 0 else 0.0
-    loss_avg = trades_df[trades_df["outcome"] == "loss"]["atr_at_entry"].mean() if n_total - n_wins > 0 else 0.0
-
+    # Expectancy en R (TP=2R, SL=1R) — normalisé : chaque win = +2R, chaque loss = -1R
+    # Pas besoin de l'ATR absolu pour l'expectancy théorique
+    n_losses = n_total - n_wins
     if n_total > 0:
-        exp_R = wr * (2.0 * wins_avg if wins_avg > 0 else 1.0) - (1 - wr) * (1.0 * loss_avg if loss_avg > 0 else 1.0)
+        exp_R = (n_wins * 2.0 - n_losses * 1.0) / n_total
     else:
         exp_R = 0.0
 
@@ -66,13 +65,13 @@ def apply_voting_filter(trades_df: pd.DataFrame, voter: EnsembleVoterV2) -> pd.D
     for idx, trade in trades_df.iterrows():
         regime = trade.get("regime", "bull")
         features = {
-            "ema_state": int(trade.get("ema_state", 0)),
-            "ema_slope": int(trade.get("ema_slope", 0)),
-            "swing": int(trade.get("swing", 0)),
+            "ema_state": int(trade.get("ema_state", 0) or 0),
+            "ema_slope": int(trade.get("ema_slope", 0) or 0),
+            "swing": int(trade.get("swing", 0) or 0),
             "rsi_state": str(trade.get("rsi_state", "weak")),
             "stoch_state": str(trade.get("stoch_state", "weak")),
             "atr_state": str(trade.get("atr_state", "neutral")),
-            "vwap_state": int(trade.get("vwap_state", 0)),
+            "vwap_state": int(trade.get("vwap_state", 0) or 0),
         }
 
         total_voters, favorable_votes, consensus_dir, confidence = voter.vote(

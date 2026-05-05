@@ -105,14 +105,23 @@ class EnsembleVoterV2:
         favorable = []
         total_matching = 0
 
+        # Match feature + direction (cast int pour éviter int vs float mismatch depuis CSV)
+        f_ema_state  = int(features["ema_state"])
+        f_ema_slope  = int(features["ema_slope"])
+        f_swing      = int(features["swing"])
+        f_vwap       = int(features.get("vwap_state", 0))
+        f_rsi        = str(features["rsi_state"])
+        f_stoch      = str(features["stoch_state"])
+        f_atr        = str(features["atr_state"])
+
         for config in candidates:
             # Feature match (exact)
-            if (features["ema_state"] != config["ema_state"] or
-                features["ema_slope"] != config["ema_slope"] or
-                features["swing"] != config["swing"] or
-                features["rsi_state"] != config["rsi_state"] or
-                features["stoch_state"] != config["stoch_state"] or
-                features["atr_state"] != config["atr_state"]):
+            if (f_ema_state != int(config["ema_state"]) or
+                f_ema_slope != int(config["ema_slope"]) or
+                f_swing     != int(config["swing"]) or
+                f_rsi       != str(config["rsi_state"]) or
+                f_stoch     != str(config["stoch_state"]) or
+                f_atr       != str(config["atr_state"])):
                 continue
 
             total_matching += 1
