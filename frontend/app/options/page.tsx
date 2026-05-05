@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useCallback } from "react"
-import { fetchVolSnapshot } from "@/lib/api"
+import { fetchVolSnapshot, fetchAdvisor, AdvisorResponse } from "@/lib/api"
 
 // ═══════════════════════════════════════════════════════════════
 // BLACK-SCHOLES MATH
@@ -83,7 +83,43 @@ function probITM(S: number, K: number, T: number, r: number, q: number, v: numbe
 
 type LegSide = "long" | "short"
 type OptType = "call" | "put"
-type Tab = "pricer" | "position" | "probas"
+type Tab = "advisor" | "pricer" | "position" | "probas"
+
+const ADVISOR_ASSETS = ["BTC", "ETH"]
+
+// Couleurs de l'advisor selon la stratégie
+function clsAdvisor(color: string) {
+  if (color === "emerald") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+  if (color === "amber")   return "border-amber-500/40 bg-amber-500/10 text-amber-300"
+  if (color === "cyan")    return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300"
+  if (color === "violet")  return "border-violet-500/40 bg-violet-500/10 text-violet-300"
+  return "border-white/10 bg-white/5 text-slate-400"
+}
+
+function IvpGauge({ ivp, ivpPct }: { ivp: number | null; ivpPct: number | null }) {
+  if (ivp === null || ivpPct === null) return (
+    <div className="text-xs text-slate-500 italic">DVOL non disponible pour cet actif</div>
+  )
+  const pct = ivpPct
+  const color = pct > 70 ? "bg-rose-400" : pct < 30 ? "bg-emerald-400" : "bg-amber-400"
+  const label = pct > 70 ? "Vol chère → SELL VOL" : pct < 30 ? "Vol bon marché → BUY VOL" : "Vol neutre"
+  return (
+    <div>
+      <div className="flex justify-between text-xs mb-1.5">
+        <span className="text-slate-400">IV Percentile (52 semaines)</span>
+        <span className="text-white mono font-semibold">{pct.toFixed(0)}%</span>
+      </div>
+      <div className="h-2 rounded bg-white/10 overflow-hidden mb-1">
+        <div className={`h-full rounded transition-all ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="flex justify-between text-[10px] text-slate-500">
+        <span>0 — BUY VOL</span>
+        <span className={`font-medium ${pct > 70 ? "text-rose-300" : pct < 30 ? "text-emerald-300" : "text-amber-300"}`}>{label}</span>
+        <span>100 — SELL VOL</span>
+      </div>
+    </div>
+  )
+}
 
 interface Leg {
   id: number
@@ -254,7 +290,11 @@ export default function OptionsPage() {
   const q  = qPct  / 100
 
   const [apiLoading, setApiLoading] = useState(true)
-  const [tab, setTab] = useState<Tab>("pricer")
+  const [tab, setTab] = useState<Tab>("advisor")
+  const [advisorAsset, setAdvisorAsset] = useState("BTC")
+  const [advisor, setAdvisor] = useState<AdvisorResponse | null>(null)
+  const [advisorLoading, setAdvisorLoading] = useState(false)
+  const [advisorError, setAdvisorError] = useState<string | null>(null)
 
   // Pricer state
   const [strike, setStrike] = useState(78000)
@@ -269,7 +309,7 @@ export default function OptionsPage() {
     type: "call", side: "long", strike: 78000, qty: 1, premium: 0
   })
 
-  // Auto-fill from live API
+  // Auto-fill from live API + charger l'advisor initial
   useEffect(() => {
     fetchVolSnapshot().then(snap => {
       if (snap.signal && !("error" in snap.signal)) {
@@ -283,6 +323,24 @@ export default function OptionsPage() {
       }
     }).catch(() => {}).finally(() => setApiLoading(false))
   }, [])
+
+  const loadAdvisor = useCallback((asset: string) => {
+    setAdvisorLoading(true)
+    setAdvisorError(null)
+    fetchAdvisor(asset).then(data => {
+      setAdvisor(data)
+      // Pré-remplir les paramètres globaux depuis l'advisor
+      if (data.spot) {
+        setSpot(Math.round(data.spot))
+        setStrike(Math.round(data.spot))
+        setNewLeg(l => ({ ...l, strike: Math.round(data.spot!) }))
+      }
+      if (data.iv_atm) setIvPct(parseFloat(data.iv_atm.toFixed(1)))
+    }).catch(e => setAdvisorError(e instanceof Error ? e.message : "Erreur"))
+      .finally(() => setAdvisorLoading(false))
+  }, [])
+
+  useEffect(() => { loadAdvisor(advisorAsset) }, [advisorAsset, loadAdvisor])
 
   // IV Solver
   const handleSolveIV = useCallback(() => {
@@ -391,12 +449,137 @@ export default function OptionsPage() {
 
       {/* Tabs */}
       <div className="flex gap-2">
-        {(["pricer", "position", "probas"] as Tab[]).map(t => (
+        {(["advisor", "pricer", "position", "probas"] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)} className={btn(tab === t)}>
-            {t === "pricer" ? "Pricer & Greeks" : t === "position" ? "Position Builder" : "Probabilités"}
+            {t === "advisor" ? "Advisor" : t === "pricer" ? "Pricer & Greeks" : t === "position" ? "Position Builder" : "Probabilités"}
           </button>
         ))}
       </div>
+
+      {/* ── TAB ADVISOR ── */}
+      {tab === "advisor" && (
+        <div className="space-y-4">
+
+          {/* Sélecteur d'actif */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">Actif :</span>
+            {ADVISOR_ASSETS.map(a => (
+              <button key={a} onClick={() => setAdvisorAsset(a)} className={btn(advisorAsset === a)}>
+                {a}
+              </button>
+            ))}
+            <button
+              onClick={() => loadAdvisor(advisorAsset)}
+              className="ml-auto text-xs text-slate-400 hover:text-slate-200 border border-white/10 rounded px-3 py-1.5 transition-colors"
+            >
+              Actualiser
+            </button>
+          </div>
+
+          {advisorLoading && (
+            <div className="flex items-center justify-center h-40 text-slate-500 text-sm">
+              Analyse en cours…
+            </div>
+          )}
+
+          {advisorError && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-sm text-red-300">
+              {advisorError}
+            </div>
+          )}
+
+          {!advisorLoading && advisor && (
+            <div className="space-y-4">
+
+              {/* IVP gauge */}
+              <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+                <h2 className="text-sm font-semibold text-white mb-3">IV Percentile — {advisor.asset}</h2>
+                <IvpGauge ivp={advisor.ivp} ivpPct={advisor.ivp_pct} />
+              </div>
+
+              {/* Contexte de marché */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-[#0d0d14] border border-white/5 rounded-lg px-4 py-3">
+                  <p className="text-[11px] text-slate-500 mb-1">Régime vol</p>
+                  <p className={`text-sm font-semibold mono ${
+                    advisor.vol_regime === "SELL_VOL" ? "text-rose-300" :
+                    advisor.vol_regime === "BUY_VOL"  ? "text-emerald-300" : "text-slate-400"
+                  }`}>{advisor.vol_regime.replace("_", " ")}</p>
+                </div>
+                <div className="bg-[#0d0d14] border border-white/5 rounded-lg px-4 py-3">
+                  <p className="text-[11px] text-slate-500 mb-1">Biais directionnel</p>
+                  <p className={`text-sm font-semibold mono ${
+                    advisor.directional_bias === "BULLISH" ? "text-emerald-300" :
+                    advisor.directional_bias === "BEARISH" ? "text-rose-300" : "text-slate-400"
+                  }`}>{advisor.directional_bias}</p>
+                </div>
+                <div className="bg-[#0d0d14] border border-white/5 rounded-lg px-4 py-3">
+                  <p className="text-[11px] text-slate-500 mb-1">DVOL / Signal</p>
+                  <p className="text-sm mono text-slate-300">
+                    {advisor.dvol_close ? advisor.dvol_close.toFixed(1) : "—"}
+                    <span className="text-slate-500 ml-1 text-xs">· {advisor.signal_action}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Recommandation */}
+              <div className={`rounded-lg border p-5 ${clsAdvisor(advisor.color)}`}>
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <p className="text-xs opacity-70 mb-1">Stratégie recommandée</p>
+                    <p className="text-2xl font-bold mono">{advisor.strategy_label}</p>
+                    <p className="text-xs opacity-60 mt-1">
+                      Risque {advisor.risk_profile} · DTE cible {advisor.dte_days} jours
+                    </p>
+                  </div>
+                  <div className="text-right text-xs opacity-70">
+                    {advisor.spot && <p>Spot : <span className="mono">{advisor.spot.toLocaleString()}</span></p>}
+                    {advisor.iv_atm && <p>IV ATM : <span className="mono">{advisor.iv_atm.toFixed(1)}%</span></p>}
+                    {advisor.skew_25d != null && <p>Skew 25d : <span className="mono">{advisor.skew_25d > 0 ? "+" : ""}{advisor.skew_25d.toFixed(1)}%</span></p>}
+                  </div>
+                </div>
+
+                {/* Legs */}
+                {advisor.legs.length > 0 && (
+                  <div className="rounded-lg overflow-hidden border border-white/10 mb-4">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          {["Action", "Type", "Strike", "DTE", "Delta cible"].map(h => (
+                            <th key={h} className="px-3 py-2 text-left text-[10px] opacity-60 font-medium">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {advisor.legs.map((leg, i) => (
+                          <tr key={i} className="border-b border-white/[0.06]">
+                            <td className={`px-3 py-2 font-semibold mono ${leg.action === "BUY" ? "text-emerald-300" : "text-rose-300"}`}>
+                              {leg.action}
+                            </td>
+                            <td className="px-3 py-2 mono opacity-80">{leg.type}</td>
+                            <td className="px-3 py-2 mono font-medium">{leg.strike.toLocaleString()}</td>
+                            <td className="px-3 py-2 mono opacity-70">{leg.dte}j</td>
+                            <td className="px-3 py-2 mono opacity-70">{leg.delta}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Rationale */}
+                <p className="text-xs opacity-70 leading-5">{advisor.rationale}</p>
+              </div>
+
+              {/* Disclaimer */}
+              <p className="text-[10px] text-slate-600 text-center">
+                Recommandation algorithmique basée sur IVP + signal directionnel. Pas un conseil financier.
+                Dernière analyse : {advisor.timestamp?.slice(0, 19).replace("T", " ")} UTC
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── TAB PRICER ── */}
       {tab === "pricer" && (

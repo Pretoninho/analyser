@@ -267,3 +267,44 @@ export async function fetchFractalHealth() {
     available_symbols: string[]
   }>
 }
+
+// ── Options Advisor ───────────────────────────────────────────────────────────
+
+export type AdvisorLeg = {
+  action: "BUY" | "SELL"
+  type: "CALL" | "PUT"
+  strike: number
+  dte: number
+  delta: string
+}
+
+export type AdvisorResponse = {
+  asset: string
+  timestamp: string
+  dvol_asset_supported: boolean
+  ivp: number | null
+  ivp_pct: number | null
+  vol_regime: "SELL_VOL" | "BUY_VOL" | "NEUTRAL"
+  directional_bias: "BULLISH" | "BEARISH" | "NEUTRAL"
+  signal_action: "LONG" | "SHORT" | "WATCH" | "FLAT"
+  dvol_state: string
+  dvol_close: number | null
+  dvol_z: number | null
+  spot: number | null
+  iv_atm: number | null
+  skew_25d: number | null
+  strategy: string
+  strategy_label: string
+  risk_profile: string
+  color: string
+  dte_days: number
+  legs: AdvisorLeg[]
+  rationale: string
+}
+
+export async function fetchAdvisor(asset = "BTC", timeframe = "1h", days = 60) {
+  const q = new URLSearchParams({ asset, timeframe, days: String(days) })
+  const res = await fetch(apiUrl(`/api/options/advisor?${q}`), { cache: "no-store" })
+  if (!res.ok) throw new Error(`options/advisor: ${res.status}`)
+  return res.json() as Promise<AdvisorResponse>
+}

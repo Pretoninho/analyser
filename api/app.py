@@ -1039,7 +1039,44 @@ def get_vol_snapshot(
     except Exception:
         result["vol_premium"] = None
 
+    # ── IVP ─────────────────────────────────────────────────────────
+    try:
+        from analysis.deribit_futures.advisor import compute_ivp
+        result["ivp"] = compute_ivp(asset.upper(), days=365)
+    except Exception:
+        result["ivp"] = None
+
     result["timestamp"] = datetime.utcnow().isoformat()
+    _cache_set(cache_key, result)
+    return result
+
+
+# ==================== OPTIONS ADVISOR ====================
+
+@app.get("/api/options/advisor")
+def get_options_advisor(
+    asset: str = Query("BTC"),
+    timeframe: str = Query("1h"),
+    days: int = Query(60),
+):
+    """
+    Recommandation options actionnable multi-asset.
+    BTC/ETH : IVP natif via DVOL Deribit.
+    Autres actifs : IVP None, fallback vol_premium.
+    Cache TTL 15 min.
+    """
+    cache_key = f"advisor_{asset.upper()}_{timeframe}_{days}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        from analysis.deribit_futures.advisor import compute_advisor
+        result = compute_advisor(asset=asset.upper(), timeframe=timeframe, days=days)
+        result = _clean_json_record(result)
+    except Exception as e:
+        raise HTTPException(500, f"Advisor error: {e}")
+
     _cache_set(cache_key, result)
     return result
 
